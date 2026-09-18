@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <!-- Green circle background -->
+    <path
+        android:fillColor="#1A6B4A"
+        android:pathData="M36,4C18.33,4 4,18.33 4,36s14.33,32 32,32 32,-14.33 32,-32S53.67,4 36,4z" />
+    <!-- Stylized K letterform in white -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,20h5v14l12,-14h6L36,36l13,16h-6L26,36v16h-5z" />
+</vector>

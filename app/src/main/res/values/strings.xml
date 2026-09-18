@@ -1,0 +1,112 @@
+<resources>
+    <string name="app_name">Kapwa DVO</string>
+    <string name="tagline">Discover Davao</string>
+
+    <!-- Auth -->
+    <string name="login">Login</string>
+    <string name="signup">Sign Up</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="full_name">Full Name</string>
+    <string name="continue_as_guest">Continue as Guest</string>
+    <string name="admin_login">Admin? Login here</string>
+    <string name="already_have_account">Already have an account? Login</string>
+    <string name="no_account">Don\'t have an account? Sign up</string>
+    <string name="create_account">Create Account</string>
+
+    <!-- Navigation -->
+    <string name="nav_explore">Explore</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_saved">Saved</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_listings">Listings</string>
+    <string name="nav_review">Review</string>
+    <string name="nav_applications">Applications</string>
+    <string name="nav_my_listings">My Listings</string>
+    <string name="nav_bookings">Bookings</string>
+
+    <!-- Explore -->
+    <string name="explore_title">Explore Davao</string>
+    <string name="search_hint">Search Davao…</string>
+    <string name="all_categories">All</string>
+    <string name="cat_tourist">Tourist Spot</string>
+    <string name="cat_business">Business</string>
+    <string name="cat_hidden">Hidden Gem</string>
+    <string name="cat_food">Food</string>
+    <string name="cat_accommodation">Accommodation</string>
+
+    <!-- Profile -->
+    <string name="edit_profile">Edit Profile</string>
+    <string name="logout">Logout</string>
+    <string name="become_owner">Become a Business Owner</string>
+    <string name="application_pending">Application Pending…</string>
+    <string name="business_dashboard">Business Owner Dashboard</string>
+    <string name="guest_profile_title">Browsing as Guest</string>
+    <string name="guest_profile_desc">Create an account to save locations, book, and more.</string>
+
+    <!-- Saved -->
+    <string name="saved_title">Saved Locations</string>
+    <string name="saved_empty">No saved locations yet.\nExplore and bookmark spots you love!</string>
+    <string name="guest_saved_message">Sign in to save your favourite spots in Davao.</string>
+    <string name="sign_in">Sign In</string>
+
+    <!-- Listing detail -->
+    <string name="save_location">Save</string>
+    <string name="remove_saved">Saved</string>
+    <string name="book_now">Book</string>
+    <string name="hours_label">Hours</string>
+    <string name="contact_label">Contact</string>
+    <string name="address_label">Address</string>
+    <string name="category_label">Category</string>
+    <string name="status_pending">Pending Review</string>
+    <string name="status_approved">Approved</string>
+    <string name="status_rejected">Rejected</string>
+
+    <!-- Owner Application -->
+    <string name="apply_title">Become a Business Owner</string>
+    <string name="apply_desc">Register your Davao business or spot on Kapwa DVO. Once approved, you can list and manage your own locations.</string>
+    <string name="apply_reason_hint">Tell us about your business (optional)</string>
+    <string name="submit_application">Submit Application</string>
+
+    <!-- Admin -->
+    <string name="admin_title">Admin Panel</string>
+    <string name="admin_listings_title">All Listings</string>
+    <string name="admin_review_title">Pending Review</string>
+    <string name="admin_apps_title">Owner Applications</string>
+    <string name="approve">Approve</string>
+    <string name="reject">Reject</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="create_listing">Create Listing</string>
+    <string name="no_pending">Nothing pending. All clear!</string>
+
+    <!-- Business Owner -->
+    <string name="owner_title">Business Owner</string>
+    <string name="add_listing">+ Add Listing</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="listing_name_hint">Business / Location Name</string>
+    <string name="listing_desc_hint">Description</string>
+    <string name="listing_address_hint">Address in Davao City</string>
+    <string name="listing_hours_hint">Opening Hours (e.g. Mon–Sat 9am–6pm)</string>
+    <string name="listing_contact_hint">Contact (phone or email)</string>
+    <string name="pick_on_map">Pick Pin on Map</string>
+    <string name="category_hint">Category</string>
+
+    <!-- Booking -->
+    <string name="accept">Accept</string>
+    <string name="decline">Decline</string>
+    <string name="booking_date_hint">Visit Date (e.g. Oct 15, 2026)</string>
+    <string name="booking_notes_hint">Notes (optional)</string>
+    <string name="confirm_booking">Request Booking</string>
+    <string name="booking_title">Request a Booking</string>
+
+    <!-- Generic -->
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="loading">Loading…</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="no_results">No results found.</string>
+    <string name="photo_placeholder_prefix">Photo:</string>
+    <string name="photo_placeholder">Photo</string>
+    <string name="unnamed">Unnamed</string>
+</resources>

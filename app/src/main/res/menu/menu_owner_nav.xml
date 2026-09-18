@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_owner_listings"
+        android:icon="@drawable/ic_listings"
+        android:title="@string/nav_my_listings" />
+    <item
+        android:id="@+id/nav_owner_bookings"
+        android:icon="@drawable/ic_bookings"
+        android:title="@string/nav_bookings" />
+</menu>
