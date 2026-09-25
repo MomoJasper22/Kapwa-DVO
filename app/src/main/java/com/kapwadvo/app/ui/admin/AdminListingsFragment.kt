@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.data.repository.ListingRepository
 import com.kapwadvo.app.databinding.FragmentAdminListingsBinding
+import com.kapwadvo.app.ui.main.explore.ListingDetailSheet
 import kotlinx.coroutines.launch
 
 class AdminListingsFragment : Fragment() {
@@ -29,6 +30,7 @@ class AdminListingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         adapter = AdminListingAdapter(
+            onCardClick = { listing -> openDetailSheet(listing) },
             onEdit = { listing -> openForm(listing) },
             onDelete = { listing -> confirmDelete(listing) }
         )
@@ -47,6 +49,11 @@ class AdminListingsFragment : Fragment() {
             adapter.submitList(listings)
             binding.tvEmpty.visibility = if (listings.isEmpty()) View.VISIBLE else View.GONE
         }
+    }
+
+    private fun openDetailSheet(listing: Listing) {
+        ListingDetailSheet.newInstance(listing, expandImmediately = true)
+            .show(childFragmentManager, "detail")
     }
 
     private fun openForm(listing: Listing?) {

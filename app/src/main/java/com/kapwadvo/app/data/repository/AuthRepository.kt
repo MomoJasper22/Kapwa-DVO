@@ -6,6 +6,8 @@ import com.kapwadvo.app.supabase
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 object AuthRepository {
 
@@ -17,14 +19,14 @@ object AuthRepository {
         loadSession()
     }
 
-    suspend fun signup(email: String, password: String, name: String) {
+    suspend fun signup(email: String, password: String, firstName: String, lastName: String) {
         supabase.auth.signUpWith(Email) {
             this.email = email
             this.password = password
         }
         val userId = supabase.auth.currentUserOrNull()?.id ?: return
         supabase.from("profiles").insert(
-            Profile(id = userId, role = "user", name = name, email = email, status = "active")
+            Profile(id = userId, role = "user", firstName = firstName, lastName = lastName, email = email, status = "active")
         )
         loadSession()
     }
@@ -46,8 +48,17 @@ object AuthRepository {
         UserSession.isGuest = false
         UserSession.userId = user.id
         UserSession.role = profile?.role ?: "user"
-        UserSession.name = profile?.name ?: ""
+        UserSession.firstName = profile?.firstName ?: ""
+        UserSession.lastName = profile?.lastName ?: ""
         UserSession.email = profile?.email ?: user.email ?: ""
+    }
+
+    suspend fun switchRole(newRole: String) {
+        val userId = currentUserId() ?: return
+        supabase.from("profiles").update(
+            buildJsonObject { put("role", newRole) }
+        ) { filter { eq("id", userId) } }
+        UserSession.role = newRole
     }
 
     fun hasSession(): Boolean = supabase.auth.currentSessionOrNull() != null

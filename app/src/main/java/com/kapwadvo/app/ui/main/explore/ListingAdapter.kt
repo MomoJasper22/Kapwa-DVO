@@ -8,8 +8,11 @@ import com.kapwadvo.app.R
 import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.databinding.ItemListingBinding
 
+import android.view.GestureDetector
+import android.view.MotionEvent
 class ListingAdapter(
     private val onItemClick: (Listing) -> Unit,
+    private val onItemDoubleClick: (Listing) -> Unit,
     private val onSaveClick: (Listing, Boolean) -> Unit,
     private val isLoggedIn: Boolean
 ) : RecyclerView.Adapter<ListingAdapter.ViewHolder>() {
@@ -53,7 +56,21 @@ class ListingAdapter(
                 binding.btnSave.visibility = android.view.View.GONE
             }
 
-            binding.root.setOnClickListener { onItemClick(listing) }
+            val gestureDetector = GestureDetector(binding.root.context, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                    onItemClick(listing)
+                    return true
+                }
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    onItemDoubleClick(listing)
+                    return true
+                }
+            })
+            binding.root.setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
+                true
+            }
+
             binding.btnSave.setOnClickListener { onSaveClick(listing, isSaved) }
         }
     }

@@ -1,6 +1,7 @@
 package com.kapwadvo.app.ui.admin
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.kapwadvo.app.data.models.Listing
@@ -26,8 +27,23 @@ class AdminReviewAdapter(
             binding.tvName.text = listing.name
             binding.tvCategory.text = listing.category
             binding.tvDescription.text = listing.description
-            binding.tvStatus.text = "Pending"
-            binding.tvStatus.setBackgroundResource(com.kapwadvo.app.R.drawable.bg_badge_pending)
+            
+            if (listing.pendingUpdates != null) {
+                binding.tvStatus.text = "Update Request"
+                binding.tvStatus.setBackgroundResource(com.kapwadvo.app.R.drawable.bg_badge_pending) // Or another color if desired
+                binding.tvUpdates.visibility = View.VISIBLE
+                
+                val updatesText = StringBuilder("Requested Changes:\n")
+                listing.pendingUpdates.forEach { (key, value) ->
+                    val cleanVal = value.toString().removeSurrounding("\"")
+                    updatesText.append("• ${key.replaceFirstChar { it.uppercase() }}: $cleanVal\n")
+                }
+                binding.tvUpdates.text = updatesText.toString().trim()
+            } else {
+                binding.tvStatus.text = "New Listing"
+                binding.tvStatus.setBackgroundResource(com.kapwadvo.app.R.drawable.bg_badge_pending)
+                binding.tvUpdates.visibility = View.GONE
+            }
 
             binding.btnApprove.setOnClickListener { onApprove(listing) }
             binding.btnReject.setOnClickListener { onReject(listing) }

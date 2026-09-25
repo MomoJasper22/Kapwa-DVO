@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Kapwa DVO</string>
-    <string name="tagline">Discover Davao</string>
+    <string name="tagline">Discover Hidden Davao</string>
 
     <!-- Auth -->
     <string name="login">Login</string>
@@ -8,6 +8,8 @@
     <string name="email">Email</string>
     <string name="password">Password</string>
     <string name="full_name">Full Name</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
     <string name="continue_as_guest">Continue as Guest</string>
     <string name="admin_login">Admin? Login here</string>
     <string name="already_have_account">Already have an account? Login</string>
@@ -41,6 +43,8 @@
     <string name="become_owner">Become a Business Owner</string>
     <string name="application_pending">Application Pending…</string>
     <string name="business_dashboard">Business Owner Dashboard</string>
+    <string name="switch_to_owner">Switch to Business Owner Mode</string>
+    <string name="switch_to_user">Switch to User Mode</string>
     <string name="guest_profile_title">Browsing as Guest</string>
     <string name="guest_profile_desc">Create an account to save locations, book, and more.</string>
 
@@ -82,7 +86,7 @@
 
     <!-- Business Owner -->
     <string name="owner_title">Business Owner</string>
-    <string name="add_listing">+ Add Listing</string>
+    <string name="add_listing">Add Listing</string>
     <string name="save_changes">Save Changes</string>
     <string name="listing_name_hint">Business / Location Name</string>
     <string name="listing_desc_hint">Description</string>

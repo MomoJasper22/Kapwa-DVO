@@ -8,8 +8,12 @@ object UserSession {
     var isGuest: Boolean = false
     var userId: String? = null
     var role: String = "guest"
-    var name: String = ""
+    var firstName: String = ""
+    var lastName: String = ""
     var email: String = ""
+
+    val fullName: String
+        get() = listOf(firstName, lastName).filter { it.isNotEmpty() }.joinToString(" ")
 
     fun isAdmin() = role == "admin"
     fun isOwner() = role == "owner"
@@ -21,7 +25,8 @@ object UserSession {
         isGuest = false
         userId = null
         role = "guest"
-        name = ""
+        firstName = ""
+        lastName = ""
         email = ""
     }
 }

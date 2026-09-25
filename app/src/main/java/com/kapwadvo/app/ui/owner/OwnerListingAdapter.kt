@@ -10,7 +10,8 @@ import com.kapwadvo.app.databinding.ItemOwnerListingBinding
 
 class OwnerListingAdapter(
     private val onEdit: (Listing) -> Unit,
-    private val onDelete: (Listing) -> Unit
+    private val onDelete: (Listing) -> Unit,
+    private val onToggleBooking: (Listing, Boolean) -> Unit
 ) : RecyclerView.Adapter<OwnerListingAdapter.ViewHolder>() {
 
     private val listings = mutableListOf<Listing>()
@@ -38,6 +39,21 @@ class OwnerListingAdapter(
             binding.tvStatus.setBackgroundResource(bg)
             binding.tvStatus.setTextColor(ContextCompat.getColor(binding.root.context, textColor))
             binding.tvStatus.setPadding(12, 4, 12, 4)
+
+            // Booking toggle — only relevant for approved listings
+            val isApproved = listing.status == "approved"
+            binding.btnToggleBooking.isEnabled = isApproved
+            if (listing.bookingsEnabled) {
+                binding.btnToggleBooking.text = "Disable Booking"
+                binding.btnToggleBooking.alpha = 1f
+            } else {
+                binding.btnToggleBooking.text = "Enable Booking"
+                binding.btnToggleBooking.alpha = if (isApproved) 1f else 0.4f
+            }
+
+            binding.btnToggleBooking.setOnClickListener {
+                onToggleBooking(listing, !listing.bookingsEnabled)
+            }
 
             binding.btnEdit.setOnClickListener { onEdit(listing) }
             binding.btnDelete.setOnClickListener { onDelete(listing) }

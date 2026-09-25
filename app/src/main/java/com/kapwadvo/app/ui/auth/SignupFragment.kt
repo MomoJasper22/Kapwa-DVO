@@ -36,11 +36,12 @@ class SignupFragment : Fragment() {
     }
 
     private fun performSignup() {
-        val name = binding.etName.text.toString().trim()
+        val firstName = binding.etFirstName.text.toString().trim()
+        val lastName = binding.etLastName.text.toString().trim()
         val email = binding.etEmail.text.toString().trim()
         val password = binding.etPassword.text.toString()
 
-        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty() || password.isEmpty()) {
             Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
             return
         }
@@ -53,7 +54,7 @@ class SignupFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                AuthRepository.signup(email, password, name)
+                AuthRepository.signup(email, password, firstName, lastName)
                 if (UserSession.userId != null) {
                     (activity as? AuthActivity)?.navigateToMain()
                 } else {

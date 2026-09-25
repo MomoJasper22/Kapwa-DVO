@@ -2,6 +2,7 @@ package com.kapwadvo.app.data.models
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class Listing(
@@ -16,6 +17,9 @@ data class Listing(
     val address: String? = null,
     val hours: String? = null,
     val contact: String? = null,
+    @SerialName("pending_updates") val pendingUpdates: JsonObject? = null,
+    @SerialName("bookings_enabled") val bookingsEnabled: Boolean = false,
+    @SerialName("photo_urls") val photoUrls: List<String> = emptyList(),
     @SerialName("created_at") val createdAt: String? = null
 )
 
@@ -31,5 +35,8 @@ data class ListingInsert(
     val status: String = "pending",
     val address: String? = null,
     val hours: String? = null,
-    val contact: String? = null
+    val contact: String? = null,
+    @SerialName("pending_updates") val pendingUpdates: JsonObject? = null,
+    @SerialName("bookings_enabled") val bookingsEnabled: Boolean = false,
+    @SerialName("photo_urls") val photoUrls: List<String> = emptyList()
 )

@@ -10,6 +10,9 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import java.util.Calendar
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.kapwadvo.app.R
@@ -50,6 +53,16 @@ class ExploreFragment : Fragment() {
         setupRecyclerView()
         setupSearch()
         loadData()
+
+        parentFragmentManager.setFragmentResultListener("detail_dismissed", viewLifecycleOwner) { _, _ ->
+            if (UserSession.isLoggedIn()) {
+                lifecycleScope.launch {
+                    val saved = SavedRepository.getSavedForUser(UserSession.userId!!)
+                    savedIds = saved.map { it.listingId }.toMutableSet()
+                    adapter.setSavedIds(savedIds)
+                }
+            }
+        }
     }
 
     private fun setupChips() {
@@ -73,7 +86,8 @@ class ExploreFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = ListingAdapter(
-            onItemClick = { showDetail(it) },
+            onItemClick = { showDetail(it, false) },
+            onItemDoubleClick = { showDetail(it, true) },
             onSaveClick = { listing, isSaved -> toggleSave(listing, isSaved) },
             isLoggedIn = UserSession.isLoggedIn()
         )
@@ -126,48 +140,9 @@ class ExploreFragment : Fragment() {
         binding.tvEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    private fun showDetail(listing: Listing) {
-        val dialog = BottomSheetDialog(requireContext())
-        val sheetBinding = BottomSheetListingDetailBinding.inflate(layoutInflater)
-        sheetBinding.tvName.text = listing.name
-        sheetBinding.tvCategory.text = listing.category
-        sheetBinding.tvDescription.text = listing.description
-        sheetBinding.tvPhotoLabel.text = "[ Photo: ${listing.name} ]"
-
-        if (!listing.address.isNullOrEmpty()) {
-            sheetBinding.tvAddress.text = listing.address
-            sheetBinding.layoutAddress.visibility = View.VISIBLE
-        }
-        if (!listing.hours.isNullOrEmpty()) {
-            sheetBinding.tvHours.text = listing.hours
-            sheetBinding.layoutHours.visibility = View.VISIBLE
-        }
-        if (!listing.contact.isNullOrEmpty()) {
-            sheetBinding.tvContact.text = listing.contact
-            sheetBinding.layoutContact.visibility = View.VISIBLE
-        }
-
-        if (!UserSession.isLoggedIn()) {
-            sheetBinding.btnSave.visibility = View.GONE
-            sheetBinding.btnBook.visibility = View.GONE
-        } else {
-            val isSaved = listing.id in savedIds
-            sheetBinding.btnSave.text = if (isSaved) getString(R.string.remove_saved) else getString(R.string.save_location)
-
-            sheetBinding.btnSave.setOnClickListener {
-                lifecycleScope.launch {
-                    toggleSave(listing, isSaved)
-                    dialog.dismiss()
-                }
-            }
-            sheetBinding.btnBook.setOnClickListener {
-                dialog.dismiss()
-                showBookingDialog(listing)
-            }
-        }
-
-        dialog.setContentView(sheetBinding.root)
-        dialog.show()
+    private fun showDetail(listing: Listing, expandImmediately: Boolean = false) {
+        val sheet = ListingDetailSheet.newInstance(listing, expandImmediately)
+        sheet.show(parentFragmentManager, "ListingDetailSheet")
     }
 
     private fun toggleSave(listing: Listing, isSaved: Boolean) {
@@ -190,39 +165,7 @@ class ExploreFragment : Fragment() {
         }
     }
 
-    private fun showBookingDialog(listing: Listing) {
-        val dialogBinding = DialogBookingBinding.inflate(layoutInflater)
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setView(dialogBinding.root)
-            .create()
 
-        dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
-        dialogBinding.btnConfirm.setOnClickListener {
-            val date = dialogBinding.etDate.text.toString().trim()
-            val notes = dialogBinding.etNotes.text.toString().trim()
-            if (date.isEmpty()) {
-                Toast.makeText(context, "Please enter a date", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            lifecycleScope.launch {
-                try {
-                    BookingRepository.createBooking(
-                        BookingInsert(
-                            listingId = listing.id,
-                            userId = UserSession.userId!!,
-                            date = date,
-                            notes = notes.ifEmpty { null }
-                        )
-                    )
-                    Toast.makeText(context, "Booking requested!", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        dialog.show()
-    }
 
     override fun onDestroyView() {
         super.onDestroyView()

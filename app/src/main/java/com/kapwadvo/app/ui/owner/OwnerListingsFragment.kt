@@ -23,6 +23,13 @@ class OwnerListingsFragment : Fragment() {
 
     private lateinit var adapter: OwnerListingAdapter
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requireActivity().supportFragmentManager.setFragmentResultListener("listing_saved", this) { _, _ ->
+            load()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentOwnerListingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -32,7 +39,19 @@ class OwnerListingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         adapter = OwnerListingAdapter(
             onEdit = { openForm(it) },
-            onDelete = { confirmDelete(it) }
+            onDelete = { confirmDelete(it) },
+            onToggleBooking = { listing, enable ->
+                lifecycleScope.launch {
+                    try {
+                        ListingRepository.toggleBookingEnabled(listing.id, enable)
+                        val msg = if (enable) "Booking enabled" else "Booking disabled"
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        load()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         )
         binding.rvListings.layoutManager = LinearLayoutManager(requireContext())
         binding.rvListings.adapter = adapter
@@ -42,6 +61,10 @@ class OwnerListingsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        load()
+    }
+
+    fun reload() {
         load()
     }
 

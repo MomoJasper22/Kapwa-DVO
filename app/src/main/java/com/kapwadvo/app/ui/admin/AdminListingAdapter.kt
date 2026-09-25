@@ -9,6 +9,7 @@ import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.databinding.ItemListingAdminBinding
 
 class AdminListingAdapter(
+    private val onCardClick: (Listing) -> Unit,
     private val onEdit: (Listing) -> Unit,
     private val onDelete: (Listing) -> Unit
 ) : RecyclerView.Adapter<AdminListingAdapter.ViewHolder>() {
@@ -38,6 +39,7 @@ class AdminListingAdapter(
             binding.tvStatus.setBackgroundResource(bg)
             binding.tvStatus.setTextColor(ContextCompat.getColor(binding.root.context, textColor))
 
+            binding.root.setOnClickListener { onCardClick(listing) }
             binding.btnEdit.setOnClickListener { onEdit(listing) }
             binding.btnDelete.setOnClickListener { onDelete(listing) }
         }

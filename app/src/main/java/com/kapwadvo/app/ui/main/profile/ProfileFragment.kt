@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.kapwadvo.app.R
 import com.kapwadvo.app.UserSession
 import com.kapwadvo.app.data.repository.ApplicationRepository
 import com.kapwadvo.app.data.repository.AuthRepository
@@ -57,7 +58,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderLoggedInState() {
-        val name = UserSession.name.ifEmpty { UserSession.email }
+        val name = UserSession.fullName.ifEmpty { UserSession.email }
         binding.tvName.text = name
         binding.tvEmail.text = UserSession.email
         binding.tvRole.text = UserSession.role.replaceFirstChar { it.uppercase() }
@@ -70,21 +71,35 @@ class ProfileFragment : Fragment() {
         binding.btnLogout.visibility = View.VISIBLE
         binding.btnEditProfile.visibility = View.VISIBLE
 
-        // Role-based buttons
-        when {
-            UserSession.isOwner() -> {
-                binding.btnOwnerDashboard.visibility = View.VISIBLE
+        val isOwnerActivity = requireActivity() is BusinessOwnerActivity
+
+        if (isOwnerActivity) {
+            // We are in Business Owner Mode
+            binding.btnBecomeOwner.visibility = View.GONE
+            binding.tvApplicationPending.visibility = View.GONE
+            binding.btnSwitchMode.visibility = View.VISIBLE
+            binding.btnSwitchMode.text = getString(R.string.switch_to_user)
+            binding.btnSwitchMode.setOnClickListener { switchModeToUser() }
+        } else if (UserSession.isAdmin()) {
+            // Admins: hide become owner entirely
+            binding.btnBecomeOwner.visibility = View.GONE
+            binding.tvApplicationPending.visibility = View.GONE
+            binding.btnSwitchMode.visibility = View.GONE
+        } else {
+            // We are in User Mode
+            if (UserSession.isOwner()) {
+                // DB role is owner, meaning they are approved
                 binding.btnBecomeOwner.visibility = View.GONE
                 binding.tvApplicationPending.visibility = View.GONE
-            }
-            UserSession.isUser() -> {
+                binding.btnSwitchMode.visibility = View.VISIBLE
+                binding.btnSwitchMode.text = getString(R.string.switch_to_owner)
+                binding.btnSwitchMode.setOnClickListener { switchModeToOwner() }
+            } else {
+                // DB role is user, check application status
                 checkApplicationStatus()
             }
         }
 
-        binding.btnOwnerDashboard.setOnClickListener {
-            startActivity(Intent(requireContext(), BusinessOwnerActivity::class.java))
-        }
         binding.btnBecomeOwner.setOnClickListener {
             navigateToApplicationForm()
         }
@@ -104,6 +119,40 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    private fun switchModeToUser() {
+        binding.btnSwitchMode.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                if (UserSession.role != "user") {
+                    AuthRepository.switchRole("user")
+                }
+                Toast.makeText(context, "Switched to User mode", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(requireContext(), com.kapwadvo.app.ui.main.MainActivity::class.java))
+                requireActivity().finish()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Switch failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                binding.btnSwitchMode.isEnabled = true
+            }
+        }
+    }
+
+    private fun switchModeToOwner() {
+        binding.btnSwitchMode.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                if (UserSession.role != "owner") {
+                    AuthRepository.switchRole("owner")
+                }
+                Toast.makeText(context, "Switched to Business Owner mode", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(requireContext(), BusinessOwnerActivity::class.java))
+                requireActivity().finish()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Switch failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                binding.btnSwitchMode.isEnabled = true
+            }
+        }
+    }
+
     private fun checkApplicationStatus() {
         lifecycleScope.launch {
             val app = ApplicationRepository.getUserApplication(UserSession.userId!!)
@@ -111,13 +160,24 @@ class ProfileFragment : Fragment() {
                 "pending" -> {
                     binding.tvApplicationPending.visibility = View.VISIBLE
                     binding.btnBecomeOwner.visibility = View.GONE
+                    binding.btnSwitchMode.visibility = View.GONE
+                }
+                "approved" -> {
+                    // Approved but currently in user mode — show switch button
+                    binding.tvApplicationPending.visibility = View.GONE
+                    binding.btnBecomeOwner.visibility = View.GONE
+                    binding.btnSwitchMode.visibility = View.VISIBLE
+                    binding.btnSwitchMode.text = getString(R.string.switch_to_owner)
+                    binding.btnSwitchMode.setOnClickListener { switchModeToOwner() }
                 }
                 null -> {
                     binding.btnBecomeOwner.visibility = View.VISIBLE
                     binding.tvApplicationPending.visibility = View.GONE
+                    binding.btnSwitchMode.visibility = View.GONE
                 }
                 else -> {
                     binding.btnBecomeOwner.visibility = View.GONE
+                    binding.btnSwitchMode.visibility = View.GONE
                 }
             }
         }

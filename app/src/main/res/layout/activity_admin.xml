@@ -19,6 +19,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:menu="@menu/menu_admin_nav"
+        app:paddingBottomSystemWindowInsets="true"
+        app:paddingLeftSystemWindowInsets="true"
+        app:paddingRightSystemWindowInsets="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

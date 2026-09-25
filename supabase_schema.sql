@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.listings (
     address TEXT,
     hours TEXT,
     contact TEXT,
+    photo_urls TEXT[] DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -79,6 +80,30 @@ CREATE TABLE IF NOT EXISTS public.owner_applications (
 );
 
 
+-- 6. reviews (one review & rating per user per listing)
+CREATE TABLE IF NOT EXISTS public.reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (listing_id, user_id)
+);
+
+-- 7. review_comments (unlimited discussion comments/replies per user)
+CREATE TABLE IF NOT EXISTS public.review_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_listing ON public.reviews(listing_id);
+CREATE INDEX IF NOT EXISTS idx_review_comments_listing ON public.review_comments(listing_id);
+
+
 -- ============================================================
 -- Row Level Security (RLS)
 -- ============================================================
@@ -88,6 +113,8 @@ ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.saved_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.owner_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.review_comments ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "Public read profiles" ON public.profiles FOR SELECT USING (true);
@@ -142,9 +169,31 @@ CREATE POLICY "Admins update applications" ON public.owner_applications FOR UPDA
         SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
     ));
 
+-- reviews
+CREATE POLICY "Anyone can read reviews" ON public.reviews FOR SELECT USING (true);
+CREATE POLICY "Users insert own review" ON public.reviews FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own review" ON public.reviews FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own review" ON public.reviews FOR DELETE USING (auth.uid() = user_id);
+
+-- review_comments
+CREATE POLICY "Anyone can read review comments" ON public.review_comments FOR SELECT USING (true);
+CREATE POLICY "Users insert own review comments" ON public.review_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own review comments" ON public.review_comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own review comments" ON public.review_comments FOR DELETE USING (auth.uid() = user_id);
+
 
 -- ============================================================
 -- Seed: Create first admin user
 -- After signing up via the app, run this (replace with real UUID):
 -- UPDATE public.profiles SET role = 'admin' WHERE email = 'admin@kapwadvo.com';
 -- ============================================================
+
+-- ============================================================
+-- Storage: listing_photos
+-- ============================================================
+INSERT INTO storage.buckets (id, name, public) VALUES ('listing_photos', 'listing_photos', true) ON CONFLICT DO NOTHING;
+
+CREATE POLICY "Anyone can view listing_photos" ON storage.objects FOR SELECT USING (bucket_id = 'listing_photos');
+CREATE POLICY "Authenticated users can upload listing_photos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'listing_photos' AND auth.role() = 'authenticated');
+CREATE POLICY "Owners can update listing_photos" ON storage.objects FOR UPDATE USING (bucket_id = 'listing_photos' AND auth.role() = 'authenticated');
+CREATE POLICY "Owners can delete listing_photos" ON storage.objects FOR DELETE USING (bucket_id = 'listing_photos' AND auth.role() = 'authenticated');

@@ -29,7 +29,6 @@ class LoginFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnLogin.setOnClickListener { performLogin() }
-        binding.tvAdminLogin.setOnClickListener { performLogin() }
         binding.btnGuest.setOnClickListener {
             (activity as? AuthActivity)?.navigateToGuestMain()
         }
@@ -48,7 +47,6 @@ class LoginFragment : Fragment() {
         }
 
         binding.btnLogin.isEnabled = false
-        binding.tvAdminLogin.isEnabled = false
 
         lifecycleScope.launch {
             try {
@@ -57,7 +55,6 @@ class LoginFragment : Fragment() {
             } catch (e: Exception) {
                 Toast.makeText(context, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
                 binding.btnLogin.isEnabled = true
-                binding.tvAdminLogin.isEnabled = true
             }
         }
     }

@@ -2,6 +2,7 @@ package com.kapwadvo.app.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.android.material.tabs.TabLayout
@@ -9,6 +10,7 @@ import com.kapwadvo.app.UserSession
 import com.kapwadvo.app.databinding.ActivityAuthBinding
 import com.kapwadvo.app.ui.admin.AdminActivity
 import com.kapwadvo.app.ui.main.MainActivity
+import com.kapwadvo.app.ui.owner.BusinessOwnerActivity
 
 class AuthActivity : AppCompatActivity() {
 
@@ -16,8 +18,18 @@ class AuthActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        androidx.core.view.WindowCompat.getInsetsController(window, binding.root).isAppearanceLightStatusBars = true
+
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
         setupTabs()
     }
 

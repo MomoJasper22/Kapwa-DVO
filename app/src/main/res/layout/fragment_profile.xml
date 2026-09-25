@@ -94,108 +94,96 @@
             app:layout_constraintStart_toStartOf="@id/guideStart"
             app:layout_constraintEnd_toEndOf="@id/guideEnd" />
 
-        <!-- Business Owner button — visible if role=owner -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnOwnerDashboard"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/business_dashboard"
+            android:orientation="vertical"
             android:layout_marginTop="16dp"
-            android:visibility="gone"
             app:layout_constraintTop_toBottomOf="@id/vDivider"
             app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+            app:layout_constraintEnd_toEndOf="@id/guideEnd">
 
-        <!-- Become Owner — visible if role=user, no pending app -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBecomeOwner"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/become_owner"
-            android:layout_marginTop="12dp"
-            android:visibility="gone"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            app:layout_constraintTop_toBottomOf="@id/btnOwnerDashboard"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+            <!-- Guest sign-in prompt -->
+            <TextView
+                android:id="@+id/tvGuestTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/guest_profile_title"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:gravity="center"
+                android:visibility="gone" />
 
-        <!-- Pending state -->
-        <TextView
-            android:id="@+id/tvApplicationPending"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/application_pending"
-            android:textColor="@color/pending_text"
-            android:background="@drawable/bg_badge_pending"
-            android:padding="12dp"
-            android:gravity="center"
-            android:layout_marginTop="12dp"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/btnBecomeOwner"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+            <TextView
+                android:id="@+id/tvGuestDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/guest_profile_desc"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnEditProfile"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/edit_profile"
-            android:layout_marginTop="12dp"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            app:layout_constraintTop_toBottomOf="@id/tvApplicationPending"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSignIn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sign_in"
+                android:layout_marginTop="24dp"
+                android:visibility="gone" />
 
-        <!-- Guest sign-in prompt -->
-        <TextView
-            android:id="@+id/tvGuestTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/guest_profile_title"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/vDivider"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            <!-- Switch Mode button — shown to approved owners to toggle between user/owner view -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSwitchMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/switch_to_user"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
 
-        <TextView
-            android:id="@+id/tvGuestDesc"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/guest_profile_desc"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center"
-            android:layout_marginTop="8dp"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/tvGuestTitle"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            <!-- Become Owner — visible if role=user, no pending app -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBecomeOwner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/become_owner"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSignIn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/sign_in"
-            android:layout_marginTop="24dp"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/tvGuestDesc"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+            <!-- Pending state -->
+            <TextView
+                android:id="@+id/tvApplicationPending"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/application_pending"
+                android:textColor="@color/pending_text"
+                android:background="@drawable/bg_badge_pending"
+                android:padding="12dp"
+                android:gravity="center"
+                android:layout_marginTop="12dp"
+                android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLogout"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/logout"
-            android:layout_marginTop="12dp"
-            style="@style/Widget.Material3.Button.TonalButton"
-            app:layout_constraintTop_toBottomOf="@id/btnSignIn"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditProfile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/edit_profile"
+                android:layout_marginTop="12dp"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/logout"
+                android:layout_marginTop="12dp"
+                style="@style/Widget.Material3.Button.TonalButton" />
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>
