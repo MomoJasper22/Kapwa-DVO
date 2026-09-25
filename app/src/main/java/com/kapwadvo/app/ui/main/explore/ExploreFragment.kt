@@ -1,171 +1,177 @@
 package com.kapwadvo.app.ui.main.explore
 
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import java.util.Calendar
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.chip.Chip
 import com.kapwadvo.app.R
 import com.kapwadvo.app.UserSession
-import com.kapwadvo.app.data.models.Booking
-import com.kapwadvo.app.data.models.BookingInsert
-import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.data.repository.BookingRepository
 import com.kapwadvo.app.data.repository.ListingRepository
-import com.kapwadvo.app.data.repository.SavedRepository
-import com.kapwadvo.app.databinding.BottomSheetListingDetailBinding
-import com.kapwadvo.app.databinding.DialogBookingBinding
+import com.kapwadvo.app.data.repository.ReviewRepository
 import com.kapwadvo.app.databinding.FragmentExploreBinding
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import com.kapwadvo.app.databinding.LayoutBookingSummaryCardBinding
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.util.Calendar
 
 class ExploreFragment : Fragment() {
 
     private var _binding: FragmentExploreBinding? = null
     private val binding get() = _binding!!
 
-    private val categories = listOf("All", "Tourist Spot", "Business", "Hidden Gem", "Food", "Accommodation")
-    private var selectedCategory = "All"
-    private var allListings = emptyList<Listing>()
-    private var savedIds = mutableSetOf<String>()
-    private var searchJob: Job? = null
-    private lateinit var adapter: ListingAdapter
+    private lateinit var highlightAdapter: HighlightAdapter
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
         _binding = FragmentExploreBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupChips()
-        setupRecyclerView()
-        setupSearch()
+        setupGreeting()
+        setupHighlightsRecyclerView()
         loadData()
+    }
 
-        parentFragmentManager.setFragmentResultListener("detail_dismissed", viewLifecycleOwner) { _, _ ->
-            if (UserSession.isLoggedIn()) {
-                lifecycleScope.launch {
-                    val saved = SavedRepository.getSavedForUser(UserSession.userId!!)
-                    savedIds = saved.map { it.listingId }.toMutableSet()
-                    adapter.setSavedIds(savedIds)
-                }
-            }
+    // ── Greeting ─────────────────────────────────────────────────────────────
+
+    private fun setupGreeting() {
+        if (UserSession.isLoggedIn() && UserSession.firstName.isNotEmpty()) {
+            val timeGreeting = timeOfDayGreeting()
+            binding.tvGreeting.text = "$timeGreeting, ${UserSession.firstName}!"
+        } else if (UserSession.isGuest) {
+            binding.tvGreeting.text = getString(R.string.greeting_guest)
+        } else {
+            binding.tvGreeting.text = "${timeOfDayGreeting()}!"
+        }
+        binding.tvGreetingSub.text = "Where are you exploring today?"
+    }
+
+    private fun timeOfDayGreeting(): String {
+        return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+            in 0..11  -> getString(R.string.greeting_morning)
+            in 12..17 -> getString(R.string.greeting_afternoon)
+            else      -> getString(R.string.greeting_evening)
         }
     }
 
-    private fun setupChips() {
-        categories.forEach { cat ->
-            val chip = Chip(requireContext()).apply {
-                text = cat
-                isCheckable = true
-                isChecked = cat == selectedCategory
-            }
-            chip.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) {
-                    selectedCategory = cat
-                    filterListings()
-                }
-            }
-            binding.chipGroupCategories.addView(chip)
+    // ── RecyclerViews ─────────────────────────────────────────────────────────
+
+    private fun setupHighlightsRecyclerView() {
+        highlightAdapter = HighlightAdapter { listing ->
+            val sheet = ListingDetailSheet.newInstance(listing)
+            sheet.show(parentFragmentManager, "ListingDetailSheet")
         }
-        // Check "All" chip by default
-        (binding.chipGroupCategories.getChildAt(0) as? Chip)?.isChecked = true
+        binding.rvHighlights.apply {
+            adapter = highlightAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+        }
     }
 
-    private fun setupRecyclerView() {
-        adapter = ListingAdapter(
-            onItemClick = { showDetail(it, false) },
-            onItemDoubleClick = { showDetail(it, true) },
-            onSaveClick = { listing, isSaved -> toggleSave(listing, isSaved) },
-            isLoggedIn = UserSession.isLoggedIn()
-        )
-        binding.rvListings.layoutManager = LinearLayoutManager(requireContext())
-        binding.rvListings.adapter = adapter
-    }
-
-    private fun setupSearch() {
-        binding.etSearch.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                searchJob?.cancel()
-                searchJob = lifecycleScope.launch {
-                    delay(300)
-                    filterListings()
-                }
-            }
-        })
-    }
+    // ── Data loading ──────────────────────────────────────────────────────────
 
     private fun loadData() {
-        binding.progressBar.visibility = View.VISIBLE
-        binding.tvEmpty.visibility = View.GONE
-
-        lifecycleScope.launch {
-            allListings = ListingRepository.getApprovedListings()
-
-            if (UserSession.isLoggedIn()) {
-                val saved = SavedRepository.getSavedForUser(UserSession.userId!!)
-                savedIds = saved.map { it.listingId }.toMutableSet()
-                adapter.setSavedIds(savedIds)
-            }
-
-            binding.progressBar.visibility = View.GONE
-            filterListings()
-        }
+        loadBookingSummary()
+        loadHighlights()
     }
 
-    private fun filterListings() {
-        val query = binding.etSearch.text.toString().trim().lowercase()
-        val filtered = allListings.filter { listing ->
-            val matchCat = selectedCategory == "All" || listing.category == selectedCategory
-            val matchSearch = query.isEmpty() || listing.name.lowercase().contains(query) ||
-                listing.description.lowercase().contains(query)
-            matchCat && matchSearch
+    private fun loadBookingSummary() {
+        val uid = UserSession.userId
+        if (!UserSession.isLoggedIn() || uid == null) {
+            binding.tvBookingsPlaceholder.visibility = View.VISIBLE
+            return
         }
 
-        adapter.submitList(filtered)
-        binding.tvEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
-    }
+        binding.progressBookings.visibility = View.VISIBLE
 
-    private fun showDetail(listing: Listing, expandImmediately: Boolean = false) {
-        val sheet = ListingDetailSheet.newInstance(listing, expandImmediately)
-        sheet.show(parentFragmentManager, "ListingDetailSheet")
-    }
-
-    private fun toggleSave(listing: Listing, isSaved: Boolean) {
-        val uid = UserSession.userId ?: return
         lifecycleScope.launch {
             try {
-                if (isSaved) {
-                    SavedRepository.removeSaved(uid, listing.id)
-                    savedIds.remove(listing.id)
-                    Toast.makeText(context, "Removed from saved", Toast.LENGTH_SHORT).show()
-                } else {
-                    SavedRepository.saveLocation(uid, listing.id)
-                    savedIds.add(listing.id)
-                    Toast.makeText(context, "Saved!", Toast.LENGTH_SHORT).show()
+                val bookings = BookingRepository.getBookingsForUser(uid)
+                binding.progressBookings.visibility = View.GONE
+
+                val today = try { LocalDate.now().toString() } catch (e: Exception) { "" }
+
+                val pending   = bookings.count { it.status.lowercase() == "pending" }
+                val confirmed = bookings.count {
+                    it.status.lowercase() in listOf("confirmed", "accepted")
                 }
-                adapter.setSavedIds(savedIds)
+                val past      = bookings.count {
+                    it.status.lowercase() in listOf("declined", "rejected") ||
+                    (today.isNotEmpty() && it.date < today)
+                }
+
+                // Bind into the included card's views
+                val cardBinding = LayoutBookingSummaryCardBinding.bind(
+                    binding.bookingSummaryCard.root
+                )
+                cardBinding.tvPendingCount.text   = pending.toString()
+                cardBinding.tvConfirmedCount.text = confirmed.toString()
+                cardBinding.tvPastCount.text      = past.toString()
+
+                binding.bookingSummaryCard.root.visibility = View.VISIBLE
+
+                // Navigate to My Reservations on click
+                binding.bookingSummaryCard.root.setOnClickListener {
+                    parentFragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainer, MyReservationsFragment())
+                        .addToBackStack(null)
+                        .commit()
+                }
+
             } catch (e: Exception) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                binding.progressBookings.visibility = View.GONE
+                binding.tvBookingsPlaceholder.text = getString(R.string.no_bookings)
+                binding.tvBookingsPlaceholder.visibility = View.VISIBLE
             }
         }
     }
 
+    private fun loadHighlights() {
+        binding.progressHighlights.visibility = View.VISIBLE
 
+        lifecycleScope.launch {
+            try {
+                val listings = ListingRepository.getApprovedListings()
+
+                // Fetch reviews for all listings concurrently
+                val reviewJobs = listings.map { listing ->
+                    async {
+                        val reviews = ReviewRepository.getReviewsForListing(listing.id)
+                        val avg = if (reviews.isEmpty()) 0.0
+                                  else reviews.map { it.rating }.average()
+                        HighlightItem(listing, avg, reviews.size)
+                    }
+                }
+                val highlighted = reviewJobs.map { it.await() }
+                    .filter { it.reviewCount > 0 }               // only listings with reviews
+                    .sortedByDescending { it.avgRating }
+                    .take(10)
+
+                // If no reviewed listings, show top 10 by name as fallback
+                val finalList = if (highlighted.isEmpty()) {
+                    listings.take(10).map { HighlightItem(it, 0.0, 0) }
+                } else highlighted
+
+                binding.progressHighlights.visibility = View.GONE
+                if (finalList.isEmpty()) {
+                    binding.tvHighlightsEmpty.visibility = View.VISIBLE
+                } else {
+                    highlightAdapter.submitList(finalList)
+                    binding.rvHighlights.visibility = View.VISIBLE
+                }
+            } catch (e: Exception) {
+                binding.progressHighlights.visibility = View.GONE
+                binding.tvHighlightsEmpty.visibility = View.VISIBLE
+            }
+        }
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

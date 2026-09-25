@@ -30,12 +30,25 @@
     <!-- Explore -->
     <string name="explore_title">Explore Davao</string>
     <string name="search_hint">Search Davao…</string>
+    <string name="map_search_hint">Search on map…</string>
     <string name="all_categories">All</string>
     <string name="cat_tourist">Tourist Spot</string>
     <string name="cat_business">Business</string>
     <string name="cat_hidden">Hidden Gem</string>
     <string name="cat_food">Food</string>
     <string name="cat_accommodation">Accommodation</string>
+
+    <!-- Home / Dashboard -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_guest">Hello, Explorer!</string>
+    <string name="my_bookings_title">My Reservations</string>
+    <string name="no_bookings">No bookings yet.\nBook a destination to get started!</string>
+    <string name="guest_bookings_message">Sign in to view your reservations.</string>
+    <string name="highlights_title">Highlighted Destinations</string>
+    <string name="highlights_empty">No highlights yet.</string>
+    <string name="rating_label">Rating</string>
 
     <!-- Profile -->
     <string name="edit_profile">Edit Profile</string>

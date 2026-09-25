@@ -11,6 +11,9 @@ object UserSession {
     var firstName: String = ""
     var lastName: String = ""
     var email: String = ""
+    var dob: String = ""
+    var phoneNumber: String = ""
+    var address: String = ""
 
     val fullName: String
         get() = listOf(firstName, lastName).filter { it.isNotEmpty() }.joinToString(" ")
@@ -28,5 +31,8 @@ object UserSession {
         firstName = ""
         lastName = ""
         email = ""
+        dob = ""
+        phoneNumber = ""
+        address = ""
     }
 }

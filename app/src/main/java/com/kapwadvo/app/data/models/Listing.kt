@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 data class Listing(
     val id: String = "",
     @SerialName("owner_id") val ownerId: String? = null,
+    var ownerName: String? = null,
     val name: String = "",
     val description: String = "",
     val category: String = "",

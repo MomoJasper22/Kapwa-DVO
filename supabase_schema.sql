@@ -7,8 +7,12 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'owner', 'admin')),
-    name TEXT,
+    first_name TEXT,
+    last_name TEXT,
     email TEXT,
+    dob TEXT,
+    phone_number TEXT,
+    address TEXT,
     status TEXT DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -17,8 +21,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, email, role)
-    VALUES (NEW.id, NEW.email, 'user')
+    INSERT INTO public.profiles (id, email, role, first_name, last_name)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        'user',
+        NEW.raw_user_meta_data->>'first_name',
+        NEW.raw_user_meta_data->>'last_name'
+    )
     ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
 END;

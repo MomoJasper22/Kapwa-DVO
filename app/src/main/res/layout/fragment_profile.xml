@@ -1,189 +1,235 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:fillViewport="true">
+    android:background="@color/background">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
+    <!-- Header: Back button + Title row -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_arrow_back"
+        android:contentDescription="Back"
+        android:layout_marginTop="24dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/tvHeaderTitle" />
+
+    <TextView
+        android:id="@+id/tvHeaderTitle"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingTop="24dp"
-        android:paddingBottom="24dp">
+        android:text="Profile"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBack"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideStart"
-            android:layout_width="wrap_content"
+    <!-- Scrollable content -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/btnBack"
+        app:layout_constraintBottom_toTopOf="@id/btnLogout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.08" />
+            android:paddingTop="16dp"
+            android:paddingBottom="24dp">
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideEnd"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.92" />
-
-        <!-- Avatar circle placeholder -->
-        <FrameLayout
-            android:id="@+id/flAvatar"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:background="@drawable/bg_avatar">
-            <!-- Will be styled as circle in code -->
-            <TextView
-                android:id="@+id/tvAvatarLetter"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:textColor="@color/white"
-                android:textSize="32sp"
-                android:textStyle="bold"
-                android:text="?" />
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/tvName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="User Name"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            app:layout_constraintTop_toBottomOf="@id/flAvatar"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="12dp" />
-
-        <TextView
-            android:id="@+id/tvEmail"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="user@email.com"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            app:layout_constraintTop_toBottomOf="@id/tvName"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:id="@+id/tvRole"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textColor="@color/primary"
-            app:layout_constraintTop_toBottomOf="@id/tvEmail"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="4dp" />
-
-        <View
-            android:id="@+id/vDivider"
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:background="@color/divider"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="16dp"
-            app:layout_constraintTop_toBottomOf="@id/tvRole"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/vDivider"
-            app:layout_constraintStart_toStartOf="@id/guideStart"
-            app:layout_constraintEnd_toEndOf="@id/guideEnd">
-
-            <!-- Guest sign-in prompt -->
-            <TextView
-                android:id="@+id/tvGuestTitle"
-                android:layout_width="match_parent"
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/guideStart"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/guest_profile_title"
-                android:textSize="18sp"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.08" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/guideEnd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.92" />
+
+            <!-- Avatar circle placeholder -->
+            <FrameLayout
+                android:id="@+id/flAvatar"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:background="@drawable/bg_avatar">
+                <!-- Will be styled as circle in code -->
+                <TextView
+                    android:id="@+id/tvAvatarLetter"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    android:text="?" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="User Name"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
-                android:gravity="center"
-                android:visibility="gone" />
+                app:layout_constraintTop_toBottomOf="@id/flAvatar"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="12dp" />
 
             <TextView
-                android:id="@+id/tvGuestDesc"
-                android:layout_width="match_parent"
+                android:id="@+id/tvEmail"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/guest_profile_desc"
+                android:text="user@email.com"
                 android:textSize="14sp"
                 android:textColor="@color/text_secondary"
-                android:gravity="center"
-                android:layout_marginTop="8dp"
-                android:visibility="gone" />
+                app:layout_constraintTop_toBottomOf="@id/tvName"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="4dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSignIn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/sign_in"
-                android:layout_marginTop="24dp"
-                android:visibility="gone" />
-
-            <!-- Switch Mode button — shown to approved owners to toggle between user/owner view -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSwitchMode"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/switch_to_user"
-                android:layout_marginTop="12dp"
-                android:visibility="gone"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
-
-            <!-- Become Owner — visible if role=user, no pending app -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnBecomeOwner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/become_owner"
-                android:layout_marginTop="12dp"
-                android:visibility="gone"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
-
-            <!-- Pending state -->
             <TextView
-                android:id="@+id/tvApplicationPending"
-                android:layout_width="match_parent"
+                android:id="@+id/tvRole"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/application_pending"
-                android:textColor="@color/pending_text"
-                android:background="@drawable/bg_badge_pending"
-                android:padding="12dp"
-                android:gravity="center"
-                android:layout_marginTop="12dp"
-                android:visibility="gone" />
+                android:textSize="12sp"
+                android:textColor="@color/primary"
+                app:layout_constraintTop_toBottomOf="@id/tvEmail"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="4dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEditProfile"
-                android:layout_width="match_parent"
+            <View
+                android:id="@+id/vDivider"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:background="@color/divider"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
+                app:layout_constraintTop_toBottomOf="@id/tvRole"
+                app:layout_constraintStart_toStartOf="@id/guideStart"
+                app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+
+            <LinearLayout
+                android:id="@+id/llButtons"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/edit_profile"
-                android:layout_marginTop="12dp"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
+                android:orientation="vertical"
+                android:layout_marginTop="16dp"
+                app:layout_constraintTop_toBottomOf="@id/vDivider"
+                app:layout_constraintStart_toStartOf="@id/guideStart"
+                app:layout_constraintEnd_toEndOf="@id/guideEnd">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLogout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/logout"
-                android:layout_marginTop="12dp"
-                style="@style/Widget.Material3.Button.TonalButton" />
+                <!-- Guest sign-in prompt -->
+                <TextView
+                    android:id="@+id/tvGuestTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/guest_profile_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center"
+                    android:visibility="gone" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tvGuestDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/guest_profile_desc"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</ScrollView>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSignIn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sign_in"
+                    android:layout_marginTop="24dp"
+                    android:visibility="gone" />
+
+                <!-- Switch Mode button — shown to approved owners to toggle between user/owner view -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSwitchMode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/switch_to_user"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                <!-- Become Owner — visible if role=user, no pending app -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBecomeOwner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/become_owner"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                <!-- Pending state -->
+                <TextView
+                    android:id="@+id/tvApplicationPending"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/application_pending"
+                    android:textColor="@color/pending_text"
+                    android:background="@drawable/bg_badge_pending"
+                    android:padding="12dp"
+                    android:gravity="center"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEditProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/edit_profile"
+                    android:layout_marginTop="12dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+    <!-- Fixed Logout Button in Footer -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLogout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/logout"
+        android:layout_marginBottom="48dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:visibility="gone" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

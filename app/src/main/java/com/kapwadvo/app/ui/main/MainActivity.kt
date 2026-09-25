@@ -38,6 +38,14 @@ class MainActivity : AppCompatActivity() {
 
         initFragments()
         setupBottomNav()
+        
+        supportFragmentManager.addOnBackStackChangedListener {
+            if (supportFragmentManager.backStackEntryCount > 0) {
+                binding.bottomNav.visibility = android.view.View.GONE
+            } else {
+                binding.bottomNav.visibility = android.view.View.VISIBLE
+            }
+        }
     }
 
     private fun initFragments() {
@@ -64,6 +72,13 @@ class MainActivity : AppCompatActivity() {
                     .show(target)
                     .commit()
                 activeFragment = target
+                
+                // Hide bottom nav when on profile
+                if (target == profileFragment) {
+                    binding.bottomNav.visibility = android.view.View.GONE
+                } else {
+                    binding.bottomNav.visibility = android.view.View.VISIBLE
+                }
             }
             true
         }

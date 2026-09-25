@@ -161,6 +161,27 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
             binding.tvContact.text = listing.contact
             binding.layoutContact.visibility = View.VISIBLE
         }
+
+        lifecycleScope.launch {
+            val ownerId = listing.ownerId
+            if (ownerId != null) {
+                if (listing.ownerName != null) {
+                    binding.tvOwnerName.text = "By ${listing.ownerName}"
+                    binding.tvOwnerName.visibility = View.VISIBLE
+                } else {
+                    val profile = com.kapwadvo.app.data.repository.AuthRepository.getProfile(ownerId)
+                    if (profile != null && profile.fullName.isNotBlank()) {
+                        listing.ownerName = profile.fullName
+                        binding.tvOwnerName.text = "By ${profile.fullName}"
+                        binding.tvOwnerName.visibility = View.VISIBLE
+                    } else {
+                        binding.tvOwnerName.visibility = View.GONE
+                    }
+                }
+            } else {
+                binding.tvOwnerName.visibility = View.GONE
+            }
+        }
     }
 
     private fun setupAdapters() {
@@ -202,7 +223,7 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
 
     private fun showReplyBar(review: com.kapwadvo.app.data.models.ReviewWithAuthor) {
         if (!UserSession.isLoggedIn()) {
-            android.widget.Toast.makeText(context, "Log in to reply", android.widget.Toast.LENGTH_SHORT).show()
+            startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
             return
         }
         binding.layoutAddComment.visibility = View.VISIBLE
@@ -250,9 +271,8 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
             commentAdapter.submitList(comments)
 
             // User review form
+            binding.layoutYourReview.visibility = View.VISIBLE
             if (UserSession.isLoggedIn()) {
-                binding.layoutYourReview.visibility = View.VISIBLE
-
                 // Pre-fill if user already has a review
                 val existing = reviews.find { it.userId == UserSession.userId }
                 if (existing != null) {
@@ -268,14 +288,13 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
     }
 
     private fun setupActionButtons() {
-        if (!UserSession.isLoggedIn()) {
-            binding.btnSave.visibility = View.GONE
-            binding.btnBook.visibility = View.GONE
-            return
-        }
-
-        binding.btnSave.text = if (isSaved) getString(R.string.remove_saved) else getString(R.string.save_location)
+        binding.btnSave.visibility = View.VISIBLE
+        binding.btnSave.text = if (isSaved && UserSession.isLoggedIn()) getString(R.string.remove_saved) else getString(R.string.save_location)
         binding.btnSave.setOnClickListener {
+            if (!UserSession.isLoggedIn()) {
+                startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
+                return@setOnClickListener
+            }
             val uid = UserSession.userId ?: return@setOnClickListener
             lifecycleScope.launch {
                 try {
@@ -298,7 +317,13 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
 
         if (listing.bookingsEnabled) {
             binding.btnBook.visibility = View.VISIBLE
-            binding.btnBook.setOnClickListener { showBookingDialog() }
+            binding.btnBook.setOnClickListener { 
+                if (!UserSession.isLoggedIn()) {
+                    startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
+                } else {
+                    showBookingDialog()
+                }
+            }
         } else {
             binding.btnBook.visibility = View.GONE
         }
@@ -306,6 +331,10 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
 
     private fun setupReviewSubmit() {
         binding.btnSubmitReview.setOnClickListener {
+            if (!UserSession.isLoggedIn()) {
+                startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
+                return@setOnClickListener
+            }
             val rating = binding.ratingInput.rating.toInt()
             if (rating == 0) {
                 Toast.makeText(context, "Please select a star rating", Toast.LENGTH_SHORT).show()
@@ -343,6 +372,10 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
 
     private fun setupCommentPost() {
         binding.btnPostComment.setOnClickListener {
+            if (!UserSession.isLoggedIn()) {
+                startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
+                return@setOnClickListener
+            }
             val text = binding.etComment.text.toString().trim()
             if (text.isEmpty()) {
                 Toast.makeText(context, "Please write something", Toast.LENGTH_SHORT).show()

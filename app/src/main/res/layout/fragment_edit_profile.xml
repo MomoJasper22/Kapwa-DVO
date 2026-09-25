@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="24dp"
+        android:paddingBottom="40dp">
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideStart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.06" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideEnd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.94" />
+
+        <!-- Back button + Title row -->
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Back"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintBottom_toBottomOf="@id/tvTitle" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/edit_profile"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginStart="8dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnBack"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+
+        <!-- Section: Personal Info -->
+        <TextView
+            android:id="@+id/tvSectionPersonal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Personal Information"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:textAllCaps="true"
+            android:letterSpacing="0.08"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/tvTitle"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+
+        <!-- First Name -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilFirstName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/first_name"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tvSectionPersonal"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etFirstName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName|textCapWords"
+                android:imeOptions="actionNext" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Last Name -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilLastName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/last_name"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tilFirstName"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etLastName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName|textCapWords"
+                android:imeOptions="actionNext" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Date of Birth -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDob"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Date of Birth"
+            app:placeholderText="YYYY-MM-DD"
+            android:layout_marginTop="12dp"
+            app:endIconMode="custom"
+            app:endIconDrawable="@drawable/ic_calendar"
+            app:layout_constraintTop_toBottomOf="@id/tilLastName"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDob"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:focusable="false"
+                android:clickable="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Phone Number -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilPhone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Phone Number"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tilDob"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:imeOptions="actionNext" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Address -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilAddress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Address"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tilPhone"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPostalAddress|textCapSentences"
+                android:imeOptions="actionNext"
+                android:minLines="2"
+                android:gravity="top" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Section: Account -->
+        <TextView
+            android:id="@+id/tvSectionAccount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Account Settings"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:textAllCaps="true"
+            android:letterSpacing="0.08"
+            android:layout_marginTop="28dp"
+            app:layout_constraintTop_toBottomOf="@id/tilAddress"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+
+        <!-- Info note -->
+        <TextView
+            android:id="@+id/tvAccountNote"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Changing your email or password will require confirmation via your inbox."
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/tvSectionAccount"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+
+        <!-- Email -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilEmail"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/email"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tvAccountNote"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress"
+                android:imeOptions="actionNext" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- New Password -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilPassword"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="New Password (leave blank to keep)"
+            android:layout_marginTop="12dp"
+            app:endIconMode="password_toggle"
+            app:layout_constraintTop_toBottomOf="@id/tilEmail"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:imeOptions="actionDone" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Progress bar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/tilPassword"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Save Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/save_changes"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/tilPassword"
+            app:layout_constraintStart_toStartOf="@id/guideStart"
+            app:layout_constraintEnd_toEndOf="@id/guideEnd" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

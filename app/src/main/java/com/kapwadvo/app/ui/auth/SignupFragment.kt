@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.kapwadvo.app.UserSession
 import com.kapwadvo.app.data.repository.AuthRepository
 import com.kapwadvo.app.databinding.FragmentSignupBinding
 import kotlinx.coroutines.launch
@@ -55,16 +54,9 @@ class SignupFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 AuthRepository.signup(email, password, firstName, lastName)
-                if (UserSession.userId != null) {
-                    (activity as? AuthActivity)?.navigateToMain()
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Account created! Please check your email to confirm, then log in.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    binding.btnSignup.isEnabled = true
-                }
+                // Always go to email verification — Supabase requires it.
+                // The VerifyEmailFragment polls until confirmation is detected.
+                (activity as? AuthActivity)?.showVerifyEmail(email, password)
             } catch (e: Exception) {
                 Toast.makeText(context, "Signup failed: ${e.message}", Toast.LENGTH_LONG).show()
                 binding.btnSignup.isEnabled = true

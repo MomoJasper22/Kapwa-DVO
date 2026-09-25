@@ -29,7 +29,25 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupBackButton()
         renderProfile()
+    }
+
+    private fun setupBackButton() {
+        binding.btnBack.setOnClickListener {
+            val activity = requireActivity()
+            when (activity) {
+                is com.kapwadvo.app.ui.main.MainActivity -> {
+                    activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(com.kapwadvo.app.R.id.bottomNav)?.selectedItemId = com.kapwadvo.app.R.id.nav_explore
+                }
+                is BusinessOwnerActivity -> {
+                    activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(com.kapwadvo.app.R.id.bottomNav)?.selectedItemId = com.kapwadvo.app.R.id.nav_owner_listings
+                }
+                is com.kapwadvo.app.ui.admin.AdminActivity -> {
+                    activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(com.kapwadvo.app.R.id.bottomNav)?.selectedItemId = com.kapwadvo.app.R.id.nav_admin_listings
+                }
+            }
+        }
     }
 
     private fun renderProfile() {
@@ -103,8 +121,12 @@ class ProfileFragment : Fragment() {
         binding.btnBecomeOwner.setOnClickListener {
             navigateToApplicationForm()
         }
+
         binding.btnEditProfile.setOnClickListener {
-            Toast.makeText(context, "Edit profile coming soon", Toast.LENGTH_SHORT).show()
+            parentFragmentManager.beginTransaction()
+                .replace(com.kapwadvo.app.R.id.fragmentContainer, EditProfileFragment())
+                .addToBackStack(null)
+                .commit()
         }
         binding.btnLogout.setOnClickListener {
             lifecycleScope.launch {

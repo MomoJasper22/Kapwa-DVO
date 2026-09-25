@@ -25,7 +25,8 @@ class AuthActivity : AppCompatActivity() {
         androidx.core.view.WindowCompat.getInsetsController(window, binding.root).isAppearanceLightStatusBars = true
 
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            val insetsType = androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.ime()
+            val systemBars = insets.getInsets(insetsType)
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
@@ -71,5 +72,16 @@ class AuthActivity : AppCompatActivity() {
         UserSession.role = "guest"
         startActivity(Intent(this, MainActivity::class.java))
         finish()
+    }
+
+    /**
+     * Hides the tab bar and shows the email verification screen.
+     * Called after a successful sign-up.
+     */
+    fun showVerifyEmail(email: String, password: String) {
+        binding.tabLayout.visibility = android.view.View.GONE
+        supportFragmentManager.beginTransaction()
+            .replace(binding.authFragmentContainer.id, VerifyEmailFragment.newInstance(email, password))
+            .commit()
     }
 }

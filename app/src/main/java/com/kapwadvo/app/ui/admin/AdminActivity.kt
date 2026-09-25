@@ -61,6 +61,12 @@ class AdminActivity : AppCompatActivity() {
                     .show(target)
                     .commit()
                 activeFragment = target
+                
+                if (target == profileFragment) {
+                    binding.bottomNav.visibility = android.view.View.GONE
+                } else {
+                    binding.bottomNav.visibility = android.view.View.VISIBLE
+                }
             }
             true
         }

@@ -7,7 +7,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.kapwadvo.app.R
 import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.databinding.ItemListingBinding
-
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.view.GestureDetector
 import android.view.MotionEvent
 class ListingAdapter(
@@ -72,6 +74,25 @@ class ListingAdapter(
             }
 
             binding.btnSave.setOnClickListener { onSaveClick(listing, isSaved) }
+
+            val ownerId = listing.ownerId
+            if (ownerId != null) {
+                if (listing.ownerName != null) {
+                    binding.tvOwnerName.text = "By ${listing.ownerName}"
+                    binding.tvOwnerName.visibility = android.view.View.VISIBLE
+                } else {
+                    binding.tvOwnerName.visibility = android.view.View.GONE
+                    binding.root.findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
+                        val profile = com.kapwadvo.app.data.repository.AuthRepository.getProfile(ownerId)
+                        val name = profile?.fullName ?: "Unknown Owner"
+                        listing.ownerName = name
+                        binding.tvOwnerName.text = "By $name"
+                        binding.tvOwnerName.visibility = android.view.View.VISIBLE
+                    }
+                }
+            } else {
+                binding.tvOwnerName.visibility = android.view.View.GONE
+            }
         }
     }
 
