@@ -43,7 +43,7 @@ class AdminListingsFragment : Fragment() {
     private fun loadListings() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmpty.visibility = View.GONE
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val listings = ListingRepository.getAllListings()
             binding.progressBar.visibility = View.GONE
             adapter.submitList(listings)
@@ -69,7 +69,7 @@ class AdminListingsFragment : Fragment() {
             .setTitle("Delete ${listing.name}?")
             .setMessage("This action cannot be undone.")
             .setPositiveButton("Delete") { _, _ ->
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
                         ListingRepository.deleteListing(listing.id)
                         Toast.makeText(context, "Listing deleted", Toast.LENGTH_SHORT).show()

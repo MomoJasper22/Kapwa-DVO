@@ -16,6 +16,9 @@ class NotificationWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
+        if (UserSession.userId == null) {
+            com.kapwadvo.app.data.repository.AuthRepository.loadSessionFromCache()
+        }
         val userId = UserSession.userId ?: return Result.success()
 
         val prefs = applicationContext.getSharedPreferences("KapwaDVONotifications", Context.MODE_PRIVATE)

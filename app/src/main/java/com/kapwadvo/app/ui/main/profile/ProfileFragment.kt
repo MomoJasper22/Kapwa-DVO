@@ -30,8 +30,9 @@ class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
-    
+    private var isSwitchingMode = false
 
+    @Suppress("DEPRECATION")
     private val cropImage = registerForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             val uriContent = result.uriContent
@@ -41,6 +42,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun launchCropper() {
         if (!UserSession.isLoggedIn()) return
         cropImage.launch(
@@ -95,19 +97,24 @@ class ProfileFragment : Fragment() {
         }
         
         viewLifecycleOwner.lifecycleScope.launch {
+            val b = _binding ?: return@launch
             try {
-                binding.pbAvatar.visibility = View.VISIBLE
+                b.pbAvatar.visibility = View.VISIBLE
                 val bytes = withContext(Dispatchers.IO) {
                     requireContext().contentResolver.openInputStream(uri)?.readBytes()
                 } ?: throw Exception("Could not read image file")
                 
                 val publicUrl = AuthRepository.uploadAvatar(bytes)
                 loadAvatar(publicUrl)
-                Toast.makeText(requireContext(), "Profile photo updated", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Failed to upload photo", Toast.LENGTH_LONG).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "Profile photo updated", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "Failed to upload photo", Toast.LENGTH_LONG).show()
+                }
             } finally {
-                binding.pbAvatar.visibility = View.GONE
+                _binding?.pbAvatar?.visibility = View.GONE
             }
         }
     }
@@ -201,8 +208,16 @@ class ProfileFragment : Fragment() {
                 binding.btnBecomeOwner.visibility = View.GONE
                 binding.cardApplicationPending.visibility = View.GONE
                 binding.btnSwitchMode.visibility = View.VISIBLE
-                binding.btnSwitchMode.text = getString(R.string.switch_to_owner)
-                binding.btnSwitchMode.setOnClickListener { switchModeToOwner() }
+                val activeMode = requireContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                    .getString("active_mode", "user")
+                    
+                if (activeMode == "user") {
+                    binding.btnSwitchMode.text = "Switch to Business Mode"
+                    binding.btnSwitchMode.setOnClickListener { switchModeToOwner() }
+                } else {
+                    binding.btnSwitchMode.text = "Switch to User Mode"
+                    binding.btnSwitchMode.setOnClickListener { switchModeToUser() }
+                }
             } else {
                 // DB role is user, check application status
                 checkApplicationStatus()
@@ -243,104 +258,148 @@ class ProfileFragment : Fragment() {
         
         viewLifecycleOwner.lifecycleScope.launch {
             com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.collect { isOnline ->
-                binding.btnBecomeOwner.isEnabled = isOnline
-                binding.btnEditProfile.isEnabled = isOnline
-                binding.btnListPublicSpot.isEnabled = isOnline
-                binding.ivEditAvatar.isEnabled = isOnline
-                binding.flAvatar.isEnabled = isOnline
+                val b = _binding ?: return@collect
+                b.btnBecomeOwner.isEnabled = isOnline
+                b.btnEditProfile.isEnabled = isOnline
+                b.btnListPublicSpot.isEnabled = isOnline
+                b.ivEditAvatar.isEnabled = isOnline
+                b.flAvatar.isEnabled = isOnline
                 
                 val offlineMsg = "Requires internet connection"
                 if (!isOnline) {
-                    binding.btnBecomeOwner.contentDescription = offlineMsg
-                    binding.btnEditProfile.contentDescription = offlineMsg
-                    binding.btnListPublicSpot.contentDescription = offlineMsg
+                    b.btnBecomeOwner.contentDescription = offlineMsg
+                    b.btnEditProfile.contentDescription = offlineMsg
+                    b.btnListPublicSpot.contentDescription = offlineMsg
                 }
             }
         }
 
         binding.btnLogout.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
+                val b = _binding ?: return@launch
                 try {
                     AuthRepository.logout()
-                    startActivity(Intent(requireContext(), AuthActivity::class.java))
-                    requireActivity().finish()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Failed to log out. Please try again", Toast.LENGTH_LONG).show()
+                    if (isAdded) {
+                        val intent = Intent(requireContext(), AuthActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        requireActivity().finish()
+                    }
+                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                    if (isAdded) {
+                        Toast.makeText(context, "Failed to log out. Please try again", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
     }
 
     private fun switchModeToUser() {
+        if (isSwitchingMode) return
+        isSwitchingMode = true
         binding.btnSwitchMode.isEnabled = false
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                if (UserSession.role != "user") {
-                    AuthRepository.switchRole("user")
-                }
-                Toast.makeText(context, "Switched to User mode", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(requireContext(), com.kapwadvo.app.ui.main.MainActivity::class.java))
-                requireActivity().finish()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to switch mode. Please try again", Toast.LENGTH_LONG).show()
-                binding.btnSwitchMode.isEnabled = true
-            }
-        }
+        requireContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putString("active_mode", "user").apply()
+        Toast.makeText(context, "Switched to User mode", Toast.LENGTH_SHORT).show()
+        val intent = Intent(requireContext(), com.kapwadvo.app.ui.main.MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        requireActivity().finish()
     }
 
     private fun switchModeToOwner() {
+        if (isSwitchingMode) return
+        isSwitchingMode = true
         binding.btnSwitchMode.isEnabled = false
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                if (UserSession.role != "owner") {
-                    AuthRepository.switchRole("owner")
-                }
-                Toast.makeText(context, "Switched to Business Owner mode", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(requireContext(), BusinessOwnerActivity::class.java))
-                requireActivity().finish()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to switch mode. Please try again", Toast.LENGTH_LONG).show()
-                binding.btnSwitchMode.isEnabled = true
-            }
-        }
+        requireContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putString("active_mode", "owner").apply()
+        Toast.makeText(context, "Switched to Business Owner mode", Toast.LENGTH_SHORT).show()
+        val intent = Intent(requireContext(), BusinessOwnerActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        requireActivity().finish()
     }
 
     private fun checkApplicationStatus() {
         viewLifecycleOwner.lifecycleScope.launch {
             val uid = UserSession.userId ?: return@launch
-            binding.btnBecomeOwner.isEnabled = false
-            val originalText = binding.btnBecomeOwner.text
-            binding.btnBecomeOwner.text = "Checking..."
-            binding.btnBecomeOwner.visibility = View.VISIBLE
+            val prefs = requireContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+            val cacheKey = "app_status_$uid"
+            val cachedStatus = prefs.getString(cacheKey, null)
+            val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+
+            val b = _binding ?: return@launch
+
+            // Apply cache first for instant UI without flickering
+            if (cachedStatus != null) {
+                applyApplicationStatus(cachedStatus)
+            }
             
-            val app = ApplicationRepository.getUserApplication(uid)
+            // If offline and we have a cache, we're done
+            if (!isOnline && cachedStatus != null) {
+                return@launch
+            }
             
-            binding.btnBecomeOwner.text = originalText
-            binding.btnBecomeOwner.isEnabled = true
+            val originalText = b.btnBecomeOwner.text
             
-            when (app?.status) {
-                "pending" -> {
-                    binding.cardApplicationPending.visibility = View.VISIBLE
-                    binding.btnBecomeOwner.visibility = View.GONE
-                    binding.btnSwitchMode.visibility = View.GONE
+            // Otherwise, we check the network (either no cache, or we are online and need to sync)
+            if (cachedStatus == null) {
+                b.btnBecomeOwner.isEnabled = false
+                b.btnBecomeOwner.text = "Checking..."
+                b.btnBecomeOwner.visibility = View.VISIBLE
+            }
+            
+            try {
+                val app = ApplicationRepository.getUserApplication(uid)
+                val status = app?.status ?: "none"
+                prefs.edit().putString(cacheKey, status).apply()
+                
+                val finalBinding = _binding ?: return@launch
+                if (cachedStatus == null) {
+                    finalBinding.btnBecomeOwner.text = originalText
+                    finalBinding.btnBecomeOwner.isEnabled = true
                 }
-                "approved" -> {
-                    // Approved but currently in user mode — show switch button
-                    binding.cardApplicationPending.visibility = View.GONE
-                    binding.btnBecomeOwner.visibility = View.GONE
-                    binding.btnSwitchMode.visibility = View.VISIBLE
-                    binding.btnSwitchMode.text = getString(R.string.switch_to_owner)
-                    binding.btnSwitchMode.setOnClickListener { switchModeToOwner() }
+                applyApplicationStatus(status)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                val finalBinding = _binding ?: return@launch
+                finalBinding.btnBecomeOwner.text = originalText
+                finalBinding.btnBecomeOwner.isEnabled = true
+                
+                // Network error: if we have cache, use it
+                if (cachedStatus != null) {
+                    applyApplicationStatus(cachedStatus)
+                } else {
+                    // No cache and network error, hide everything to be safe
+                    applyApplicationStatus("error")
                 }
-                null -> {
-                    binding.btnBecomeOwner.visibility = View.VISIBLE
-                    binding.cardApplicationPending.visibility = View.GONE
-                    binding.btnSwitchMode.visibility = View.GONE
-                }
-                else -> {
-                    binding.btnBecomeOwner.visibility = View.GONE
-                    binding.btnSwitchMode.visibility = View.GONE
-                }
+            }
+        }
+    }
+
+    private fun applyApplicationStatus(status: String) {
+        val finalBinding = _binding ?: return
+        when (status) {
+            "pending" -> {
+                finalBinding.cardApplicationPending.visibility = View.VISIBLE
+                finalBinding.btnBecomeOwner.visibility = View.GONE
+                finalBinding.btnSwitchMode.visibility = View.GONE
+            }
+            "approved" -> {
+                finalBinding.cardApplicationPending.visibility = View.GONE
+                finalBinding.btnBecomeOwner.visibility = View.GONE
+                finalBinding.btnSwitchMode.visibility = View.VISIBLE
+                finalBinding.btnSwitchMode.text = getString(R.string.switch_to_owner)
+                finalBinding.btnSwitchMode.setOnClickListener { switchModeToOwner() }
+            }
+            "none" -> {
+                finalBinding.btnBecomeOwner.visibility = View.VISIBLE
+                finalBinding.cardApplicationPending.visibility = View.GONE
+                finalBinding.btnSwitchMode.visibility = View.GONE
+            }
+            else -> {
+                finalBinding.btnBecomeOwner.visibility = View.GONE
+                finalBinding.btnSwitchMode.visibility = View.GONE
             }
         }
     }

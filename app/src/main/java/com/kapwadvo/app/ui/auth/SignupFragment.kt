@@ -51,7 +51,7 @@ class SignupFragment : Fragment() {
 
         binding.btnSignup.isEnabled = false
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 AuthRepository.signup(email, password, firstName, lastName)
                 binding.etEmail.error = null

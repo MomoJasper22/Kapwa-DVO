@@ -29,7 +29,7 @@ class AdminAppsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         adapter = AdminAppAdapter(
             onApprove = { app ->
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
                         ApplicationRepository.updateApplicationStatus(app.id, "approved")
                         AdminRepository.setUserRole(app.userId, "owner")
@@ -41,7 +41,7 @@ class AdminAppsFragment : Fragment() {
                 }
             },
             onReject = { app ->
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
                         ApplicationRepository.updateApplicationStatus(app.id, "rejected")
                         Toast.makeText(context, "Application rejected", Toast.LENGTH_SHORT).show()
@@ -60,7 +60,7 @@ class AdminAppsFragment : Fragment() {
     private fun load() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmpty.visibility = View.GONE
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             val apps = ApplicationRepository.getPendingApplications()
             binding.progressBar.visibility = View.GONE
             adapter.submitList(apps)

@@ -30,6 +30,12 @@ interface BookingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(bookings: List<CachedBooking>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(booking: CachedBooking)
+
+    @Query("SELECT * FROM cached_bookings WHERE id = :id LIMIT 1")
+    suspend fun getBookingById(id: String): CachedBooking?
+
     @Query("DELETE FROM cached_bookings WHERE userId = :userId")
     suspend fun clearForUser(userId: String)
 }

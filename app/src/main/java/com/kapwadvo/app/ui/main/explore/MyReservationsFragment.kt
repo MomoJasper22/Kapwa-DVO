@@ -147,19 +147,39 @@ class MyReservationsFragment : Fragment() {
 
     private fun cancelBooking(bookingId: String, listingId: String) {
         val networkMonitor = com.kapwadvo.app.util.NetworkMonitor(requireContext())
-        if (!networkMonitor.isOnline.value) {
-            android.widget.Toast.makeText(context, "You must be online to cancel a reservation", android.widget.Toast.LENGTH_SHORT).show()
-            networkMonitor.unregister()
-            return
-        }
+        val isOnline = networkMonitor.isOnline.value
         networkMonitor.unregister()
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                BookingRepository.updateBookingStatus(bookingId, listingId, "cancelled")
-                android.widget.Toast.makeText(context, "Reservation cancelled", android.widget.Toast.LENGTH_SHORT).show()
+                if (isOnline) {
+                    BookingRepository.updateBookingStatus(bookingId, listingId, "cancelled")
+                    android.widget.Toast.makeText(context, "Reservation cancelled", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    // Update cache manually so it reflects immediately
+                    val dao = com.kapwadvo.app.KapwaDVOApp.database.bookingDao()
+                    val booking = dao.getBookingById(bookingId)
+                    if (booking != null) {
+                        dao.insert(booking.copy(status = "cancelled"))
+                    }
+                    
+                    // Queue for sync
+                    val payload = org.json.JSONObject().apply {
+                        put("id", bookingId)
+                        put("listingId", listingId)
+                        put("status", "cancelled")
+                    }.toString()
+                    com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(
+                        com.kapwadvo.app.UserSession.userId ?: "",
+                        "CANCEL_RESERVATION",
+                        payload
+                    )
+                    
+                    android.widget.Toast.makeText(context, "Changes Made Will Apply Once Online", android.widget.Toast.LENGTH_LONG).show()
+                }
                 loadReservations()
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 android.widget.Toast.makeText(context, "Failed to cancel", android.widget.Toast.LENGTH_SHORT).show()
             }
         }

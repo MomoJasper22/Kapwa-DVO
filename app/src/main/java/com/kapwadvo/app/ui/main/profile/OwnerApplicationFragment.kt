@@ -143,8 +143,14 @@ class OwnerApplicationFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 ApplicationRepository.submitApplication(application)
+                
+                // Update the local cache so ProfileFragment knows it's pending without network
+                val prefs = requireContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                prefs.edit().putString("app_status_$uid", "pending").apply()
+                
                 showSuccessDialog()
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Toast.makeText(context, "Failed to submit application. Please try again", Toast.LENGTH_LONG).show()
                 binding.btnSubmit.isEnabled = true
             }

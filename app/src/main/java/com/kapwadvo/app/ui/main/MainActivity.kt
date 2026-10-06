@@ -20,11 +20,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    private val exploreFragment = ExploreFragment()
-    private val mapFragment = MapFragment()
-    private val savedFragment = SavedFragment()
-    private val profileFragment = ProfileFragment()
-    private var activeFragment: Fragment = exploreFragment
+    private lateinit var exploreFragment: ExploreFragment
+    private lateinit var mapFragment: MapFragment
+    private lateinit var savedFragment: SavedFragment
+    private lateinit var profileFragment: ProfileFragment
+    private lateinit var activeFragment: Fragment
 
     private val tabHistory = java.util.Stack<Int>()
     private var isProgrammaticSelection = false
@@ -47,7 +47,20 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        initFragments()
+        if (savedInstanceState == null) {
+            exploreFragment = ExploreFragment()
+            mapFragment = MapFragment()
+            savedFragment = SavedFragment()
+            profileFragment = ProfileFragment()
+            activeFragment = exploreFragment
+            initFragments()
+        } else {
+            exploreFragment = supportFragmentManager.findFragmentByTag("explore") as ExploreFragment
+            mapFragment = supportFragmentManager.findFragmentByTag("map") as MapFragment
+            savedFragment = supportFragmentManager.findFragmentByTag("saved") as SavedFragment
+            profileFragment = supportFragmentManager.findFragmentByTag("profile") as ProfileFragment
+            activeFragment = supportFragmentManager.fragments.firstOrNull { !it.isHidden && it.tag in listOf("explore", "map", "saved", "profile") } ?: exploreFragment
+        }
         setupBottomNav()
         
         lifecycleScope.launch {
@@ -130,7 +143,9 @@ class MainActivity : AppCompatActivity() {
             }
             true
         }
-        binding.bottomNav.selectedItemId = R.id.nav_explore
+        if (binding.bottomNav.selectedItemId == R.id.nav_explore) {
+            binding.bottomNav.selectedItemId = R.id.nav_explore
+        }
     }
 
 

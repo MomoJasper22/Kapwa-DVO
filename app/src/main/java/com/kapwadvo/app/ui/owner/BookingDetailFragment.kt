@@ -38,11 +38,19 @@ class BookingDetailFragment : Fragment() {
     private val binding get() = _binding!!
     
 
-    private val booking: Booking by lazy {
-        json.decodeFromString<Booking>(requireArguments().getString(ARG_BOOKING_JSON)!!)
-    }
+    private lateinit var booking: Booking
     private val listingName: String by lazy {
-        requireArguments().getString(ARG_LISTING_NAME) ?: "Listing"
+        arguments?.getString(ARG_LISTING_NAME) ?: "Listing"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        try {
+            val jsonStr = arguments?.getString(ARG_BOOKING_JSON)
+            if (jsonStr != null) {
+                booking = json.decodeFromString<Booking>(jsonStr)
+            }
+        } catch (e: Exception) {}
     }
 
     override fun onCreateView(
@@ -57,6 +65,12 @@ class BookingDetailFragment : Fragment() {
         
         binding.toolbar.setNavigationOnClickListener {
             parentFragmentManager.popBackStack()
+        }
+
+        if (!::booking.isInitialized) {
+            Toast.makeText(context, "Invalid booking data", Toast.LENGTH_SHORT).show()
+            parentFragmentManager.popBackStack()
+            return
         }
 
         setupBookingInfo()

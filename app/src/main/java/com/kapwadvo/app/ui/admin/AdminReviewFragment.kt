@@ -62,7 +62,7 @@ class AdminReviewFragment : Fragment() {
         adapterPublicSpots = AdminPublicSpotAdapter(
             onAddListing = { spotReq ->
                 // Mark spot req as added, then route to ListingFormFragment pre-populated
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
                         PublicSpotRepository.updateRequestStatus(spotReq.id, "added")
                         
@@ -115,7 +115,7 @@ class AdminReviewFragment : Fragment() {
     }
     
     private fun handleApproveListing(listing: Listing) {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 if (listing.pendingUpdates != null) {
                     val updates = listing.pendingUpdates
@@ -145,7 +145,7 @@ class AdminReviewFragment : Fragment() {
     }
 
     private fun handleRejectListing(listing: Listing) {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 if (listing.pendingUpdates != null) {
                     val insert = ListingInsert(
@@ -179,9 +179,9 @@ class AdminReviewFragment : Fragment() {
         
         changes.onEach {
             load()
-        }.launchIn(lifecycleScope)
+        }.launchIn(viewLifecycleOwner.lifecycleScope)
         
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 supabase.realtime.connect()
                 realtimeChannel!!.subscribe()
@@ -194,7 +194,7 @@ class AdminReviewFragment : Fragment() {
     private fun load() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmpty.visibility = View.GONE
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             if (currentMode == 0) {
                 // Load Listings
                 val pendingListings = ListingRepository.getPendingListings()
@@ -215,7 +215,7 @@ class AdminReviewFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 realtimeChannel?.unsubscribe()
             } catch (e: Exception) { }

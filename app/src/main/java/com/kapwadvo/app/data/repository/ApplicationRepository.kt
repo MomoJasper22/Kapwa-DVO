@@ -17,13 +17,16 @@ object ApplicationRepository {
         supabase.from("owner_applications")
             .select { filter { eq("status", "pending") } }
             .decodeList<OwnerApplication>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { 
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        emptyList() 
+    }
 
-    suspend fun getUserApplication(userId: String): OwnerApplication? = try {
-        supabase.from("owner_applications")
+    suspend fun getUserApplication(userId: String): OwnerApplication? {
+        return supabase.from("owner_applications")
             .select { filter { eq("user_id", userId) } }
             .decodeSingleOrNull<OwnerApplication>()
-    } catch (e: Exception) { null }
+    }
 
     suspend fun updateApplicationStatus(id: String, status: String) {
         supabase.from("owner_applications").update(

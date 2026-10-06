@@ -62,7 +62,7 @@ class VerifyEmailFragment : Fragment() {
 
     private fun startPolling() {
         pollingJob?.cancel()
-        pollingJob = lifecycleScope.launch {
+        pollingJob = viewLifecycleOwner.lifecycleScope.launch {
             while (isActive) {
                 delay(4000) // poll every 4 seconds
                 checkConfirmation()
@@ -93,7 +93,7 @@ class VerifyEmailFragment : Fragment() {
 
     private fun resendEmail() {
         binding.btnResend.isEnabled = false
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 AuthRepository.resendConfirmationEmail(PendingStore.email)
                 Toast.makeText(context, "Confirmation email resent", Toast.LENGTH_SHORT).show()

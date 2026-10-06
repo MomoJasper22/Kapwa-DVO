@@ -15,10 +15,10 @@ class BusinessOwnerActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityBusinessOwnerBinding
 
-    private val listingsFragment = OwnerListingsFragment()
-    private val bookingsFragment = OwnerBookingsFragment()
-    private val profileFragment = com.kapwadvo.app.ui.main.profile.ProfileFragment()
-    private var activeFragment: Fragment = listingsFragment
+    private lateinit var listingsFragment: OwnerListingsFragment
+    private lateinit var bookingsFragment: OwnerBookingsFragment
+    private lateinit var profileFragment: com.kapwadvo.app.ui.main.profile.ProfileFragment
+    private lateinit var activeFragment: Fragment
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +35,18 @@ class BusinessOwnerActivity : AppCompatActivity() {
             insets
         }
 
-        initFragments()
+        if (savedInstanceState == null) {
+            listingsFragment = OwnerListingsFragment()
+            bookingsFragment = OwnerBookingsFragment()
+            profileFragment = com.kapwadvo.app.ui.main.profile.ProfileFragment()
+            activeFragment = listingsFragment
+            initFragments()
+        } else {
+            listingsFragment = supportFragmentManager.findFragmentByTag("listings") as OwnerListingsFragment
+            bookingsFragment = supportFragmentManager.findFragmentByTag("bookings") as OwnerBookingsFragment
+            profileFragment = supportFragmentManager.findFragmentByTag("profile") as com.kapwadvo.app.ui.main.profile.ProfileFragment
+            activeFragment = supportFragmentManager.fragments.firstOrNull { !it.isHidden && it.tag in listOf("listings", "bookings", "profile") } ?: listingsFragment
+        }
         setupBottomNav()
         setupBackStackListener()
         
@@ -92,6 +103,8 @@ class BusinessOwnerActivity : AppCompatActivity() {
             }
             true
         }
-        binding.bottomNav.selectedItemId = R.id.nav_owner_listings
+        if (binding.bottomNav.selectedItemId == R.id.nav_owner_listings) {
+            binding.bottomNav.selectedItemId = R.id.nav_owner_listings
+        }
     }
 }

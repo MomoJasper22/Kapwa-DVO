@@ -18,7 +18,8 @@ import com.kapwadvo.app.data.local.entity.CachedReview
 import com.kapwadvo.app.data.local.entity.CachedReviewComment
 import com.kapwadvo.app.data.local.entity.CachedSavedLocation
 import com.kapwadvo.app.data.local.entity.CachedBooking
-
+import com.kapwadvo.app.data.local.dao.PendingSyncActionDao
+import com.kapwadvo.app.data.local.entity.PendingSyncAction
 @Database(
     entities = [
         CachedListing::class, 
@@ -26,9 +27,10 @@ import com.kapwadvo.app.data.local.entity.CachedBooking
         CachedReview::class, 
         CachedReviewComment::class,
         CachedSavedLocation::class,
-        CachedBooking::class
+        CachedBooking::class,
+        PendingSyncAction::class
     ], 
-    version = 1, 
+    version = 2, 
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -38,6 +40,7 @@ abstract class KapwaDatabase : RoomDatabase() {
     abstract fun reviewDao(): ReviewDao
     abstract fun savedLocationDao(): SavedLocationDao
     abstract fun bookingDao(): BookingDao
+    abstract fun pendingSyncActionDao(): PendingSyncActionDao
 
     companion object {
         @Volatile

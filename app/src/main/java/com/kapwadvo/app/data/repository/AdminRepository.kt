@@ -10,7 +10,7 @@ object AdminRepository {
 
     suspend fun getAllProfiles(): List<Profile> = try {
         supabase.from("profiles").select().decodeList<Profile>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     suspend fun setUserRole(userId: String, role: String) {
         supabase.from("profiles").update(

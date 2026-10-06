@@ -51,7 +51,7 @@ object AuthRepository {
     suspend fun logout() {
         try {
             supabase.auth.signOut()
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             e.printStackTrace()
         } finally {
             UserSession.clear()
@@ -69,7 +69,7 @@ object AuthRepository {
             supabase.auth.refreshCurrentSession()
             val user = getCurrentUser()
             user?.emailConfirmedAt != null
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             false
         }
     }
@@ -88,14 +88,14 @@ object AuthRepository {
         supabase.from("profiles")
             .select { filter { eq("id", userId) } }
             .decodeSingleOrNull<Profile>()
-    } catch (e: Exception) { null }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null }
 
     suspend fun getProfiles(userIds: List<String>): List<Profile> = try {
         if (userIds.isEmpty()) emptyList()
         else supabase.from("profiles")
             .select { filter { isIn("id", userIds) } }
             .decodeList<Profile>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     suspend fun loadSessionFromCache(): Boolean {
         val user = getCurrentUser() ?: return false
@@ -163,7 +163,7 @@ object AuthRepository {
                         if (cached.avatarUrl != null) put("avatar_url", cached.avatarUrl)
                     }
                 ) { filter { eq("id", user.id) } }
-            } catch (e: Exception) {
+            } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
                 e.printStackTrace()
             }
         }
@@ -211,7 +211,7 @@ object AuthRepository {
                     if (address.isNotBlank()) put("address", address)
                 }
             ) { filter { eq("id", userId) } }
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             e.printStackTrace()
             // The local DB and session are updated, NetworkSyncWorker will sync this later
         }
@@ -235,26 +235,7 @@ object AuthRepository {
         return true
     }
 
-    suspend fun switchRole(newRole: String) {
-        val userId = currentUserId() ?: return
-        
-        UserSession.role = newRole
-        
-        // Update room cache
-        val currentProfile = KapwaDVOApp.database.profileDao().getProfile()
-        if (currentProfile != null) {
-            val updatedProfile = currentProfile.copy(role = newRole)
-            KapwaDVOApp.database.profileDao().insert(updatedProfile)
-        }
 
-        try {
-            supabase.from("profiles").update(
-                buildJsonObject { put("role", newRole) }
-            ) { filter { eq("id", userId) } }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     suspend fun hasSession(): Boolean {
         if (getCurrentUser() == null) return false
@@ -264,7 +245,7 @@ object AuthRepository {
             true
         } catch (e: RestException) {
             false
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             // For network errors (like UnknownHostException or ConnectException), 
             // we still have a session locally.
             true

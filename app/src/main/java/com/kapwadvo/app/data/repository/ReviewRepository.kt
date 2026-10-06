@@ -46,7 +46,7 @@ object ReviewRepository {
             }
             com.kapwadvo.app.KapwaDVOApp.database.reviewDao().deleteReviewsForListing(listingId)
             com.kapwadvo.app.KapwaDVOApp.database.reviewDao().insertReviews(cachedReviews)
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             // Silently fail sync
         }
     }
@@ -60,7 +60,7 @@ object ReviewRepository {
         supabase.from("reviews")
             .select { filter { eq("listing_id", listingId); eq("user_id", userId) } }
             .decodeSingleOrNull<Review>()
-    } catch (e: Exception) { null }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null }
 
     /** Insert or update the user's single review for this listing. */
     suspend fun submitReview(insert: ReviewInsert) {
@@ -115,7 +115,7 @@ object ReviewRepository {
             }
             com.kapwadvo.app.KapwaDVOApp.database.reviewDao().deleteCommentsForListing(listingId)
             com.kapwadvo.app.KapwaDVOApp.database.reviewDao().insertComments(cachedComments)
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             // Silently fail sync
         }
     }

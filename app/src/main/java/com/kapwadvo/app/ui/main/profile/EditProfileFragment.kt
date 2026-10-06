@@ -27,6 +27,7 @@ class EditProfileFragment : Fragment() {
     private var _binding: FragmentEditProfileBinding? = null
     private val binding get() = _binding!!
 
+    @Suppress("DEPRECATION")
     private val cropImage = registerForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             val uriContent = result.uriContent
@@ -36,6 +37,7 @@ class EditProfileFragment : Fragment() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun launchCropper() {
         cropImage.launch(
             CropImageContractOptions(
@@ -174,7 +176,12 @@ class EditProfileFragment : Fragment() {
 
                 setLoading(false)
 
-                Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                if (isOnline) {
+                    Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "You are offline. Changes will be synced once online.", Toast.LENGTH_LONG).show()
+                }
 
                 parentFragmentManager.popBackStack()
 

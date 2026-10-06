@@ -24,6 +24,9 @@ interface ListingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(listings: List<CachedListing>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(listing: CachedListing)
+
     @Query("DELETE FROM cached_listings WHERE status = 'approved' AND id NOT IN (:validIds)")
     suspend fun deleteStaleApprovedListings(validIds: List<String>)
     

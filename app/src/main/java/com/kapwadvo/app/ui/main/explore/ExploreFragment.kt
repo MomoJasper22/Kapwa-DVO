@@ -93,9 +93,10 @@ class ExploreFragment : Fragment() {
         binding.progressBookings.visibility = View.VISIBLE
 
         viewLifecycleOwner.lifecycleScope.launch {
+            val b = _binding ?: return@launch
             try {
                 val bookings = BookingRepository.getBookingsForUser(uid)
-                binding.progressBookings.visibility = View.GONE
+                b.progressBookings.visibility = View.GONE
 
                 val today = try { LocalDate.now().toString() } catch (e: Exception) { "" }
 
@@ -110,26 +111,32 @@ class ExploreFragment : Fragment() {
 
                 // Bind into the included card's views
                 val cardBinding = LayoutBookingSummaryCardBinding.bind(
-                    binding.bookingSummaryCard.root
+                    b.bookingSummaryCard.root
                 )
                 cardBinding.tvPendingCount.text   = pending.toString()
                 cardBinding.tvConfirmedCount.text = confirmed.toString()
                 cardBinding.tvPastCount.text      = past.toString()
 
-                binding.bookingSummaryCard.root.visibility = View.VISIBLE
+                b.bookingSummaryCard.root.visibility = View.VISIBLE
 
                 // Navigate to My Reservations on click
-                binding.bookingSummaryCard.root.setOnClickListener {
-                    parentFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainer, MyReservationsFragment())
-                        .addToBackStack(null)
-                        .commit()
+                b.bookingSummaryCard.root.setOnClickListener {
+                    if (isAdded) {
+                        parentFragmentManager.beginTransaction()
+                            .replace(R.id.fragmentContainer, MyReservationsFragment())
+                            .addToBackStack(null)
+                            .commit()
+                    }
                 }
 
-            } catch (e: Exception) {
-                binding.progressBookings.visibility = View.GONE
-                binding.tvBookingsPlaceholder.text = getString(R.string.no_bookings)
-                binding.tvBookingsPlaceholder.visibility = View.VISIBLE
+            } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                _binding?.let { validBinding ->
+                    validBinding.progressBookings.visibility = View.GONE
+                    if (isAdded) {
+                        validBinding.tvBookingsPlaceholder.text = getString(R.string.no_bookings)
+                    }
+                    validBinding.tvBookingsPlaceholder.visibility = View.VISIBLE
+                }
             }
         }
     }
@@ -138,6 +145,7 @@ class ExploreFragment : Fragment() {
         binding.progressHighlights.visibility = View.VISIBLE
 
         viewLifecycleOwner.lifecycleScope.launch {
+            val b = _binding ?: return@launch
             // Trigger a background sync from Supabase
             launch {
                 ListingRepository.syncApprovedListings()
@@ -145,14 +153,15 @@ class ExploreFragment : Fragment() {
 
             // Observe the local cache
             ListingRepository.observeApprovedListings().collectLatest { listings ->
+                val cb = _binding ?: return@collectLatest
                 try {
                     if (listings.isEmpty()) {
-                        binding.progressHighlights.visibility = View.GONE
-                        binding.tvHighlightsEmpty.visibility = View.VISIBLE
+                        cb.progressHighlights.visibility = View.GONE
+                        cb.tvHighlightsEmpty.visibility = View.VISIBLE
                         return@collectLatest
                     }
                     
-                    binding.tvHighlightsEmpty.visibility = View.GONE
+                    cb.tvHighlightsEmpty.visibility = View.GONE
 
                     // Fetch raw reviews for all listings in a single query to compute stats
                     // TODO: This should also be moved to Room caching in Tier 1 Step 3
@@ -174,16 +183,18 @@ class ExploreFragment : Fragment() {
                         listings.take(10).map { HighlightItem(it, 0.0, 0) }
                     } else highlighted
 
-                    binding.progressHighlights.visibility = View.GONE
+                    cb.progressHighlights.visibility = View.GONE
                     if (finalList.isEmpty()) {
-                        binding.tvHighlightsEmpty.visibility = View.VISIBLE
+                        cb.tvHighlightsEmpty.visibility = View.VISIBLE
                     } else {
                         highlightAdapter.submitList(finalList)
-                        binding.rvHighlights.visibility = View.VISIBLE
+                        cb.rvHighlights.visibility = View.VISIBLE
                     }
-                } catch (e: Exception) {
-                    binding.progressHighlights.visibility = View.GONE
-                    binding.tvHighlightsEmpty.visibility = View.VISIBLE
+                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                    _binding?.let { validBinding ->
+                        validBinding.progressHighlights.visibility = View.GONE
+                        validBinding.tvHighlightsEmpty.visibility = View.VISIBLE
+                    }
                 }
             }
         }

@@ -23,11 +23,10 @@ object ListingRepository {
                 .select { filter { eq("status", "approved") } }
                 .decodeList<Listing>()
             val cached = listings.map { com.kapwadvo.app.data.local.entity.CachedListing.fromListing(it) }
-            if (listings.isNotEmpty()) {
-                com.kapwadvo.app.KapwaDVOApp.database.listingDao().deleteStaleApprovedListings(listings.map { it.id })
-            }
+            val validIds = if (listings.isEmpty()) listOf("dummy_id") else listings.map { it.id }
+            com.kapwadvo.app.KapwaDVOApp.database.listingDao().deleteStaleApprovedListings(validIds)
             com.kapwadvo.app.KapwaDVOApp.database.listingDao().insertAll(cached)
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             // Silently fail sync, UI will still show cached data
         }
     }
@@ -51,45 +50,60 @@ object ListingRepository {
                 .select { filter { eq("owner_id", ownerId) } }
                 .decodeList<Listing>()
             val cached = listings.map { com.kapwadvo.app.data.local.entity.CachedListing.fromListing(it) }
-            com.kapwadvo.app.KapwaDVOApp.database.listingDao().deleteStaleOwnerListings(ownerId, listings.map { it.id })
+            val validIds = if (listings.isEmpty()) listOf("dummy_id") else listings.map { it.id }
+            com.kapwadvo.app.KapwaDVOApp.database.listingDao().deleteStaleOwnerListings(ownerId, validIds)
             
             if (cached.isNotEmpty()) {
                 com.kapwadvo.app.KapwaDVOApp.database.listingDao().insertAll(cached)
             }
             listings.map { it.id }
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
             null
         }
     }
 
     suspend fun getAllListings(): List<Listing> = try {
         supabase.from("listings").select().decodeList<Listing>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     suspend fun getPendingListings(): List<Listing> = try {
         supabase.from("listings")
             .select { filter { eq("status", "pending") } }
             .decodeList<Listing>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     suspend fun getPendingUpdatesListings(): List<Listing> = try {
         supabase.from("listings")
             .select { filter { neq("pending_updates", "null") } }
             .decodeList<Listing>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
-    suspend fun getListingById(id: String): Listing? = try {
-        supabase.from("listings")
-            .select { filter { eq("id", id) } }
-            .decodeSingleOrNull<Listing>()
-    } catch (e: Exception) { null }
+    suspend fun getListingById(id: String): Listing? {
+        val cached = com.kapwadvo.app.KapwaDVOApp.database.listingDao().getListingById(id)
+        if (cached != null) return cached.toListing()
+        
+        return try {
+            supabase.from("listings")
+                .select { filter { eq("id", id) } }
+                .decodeSingleOrNull<Listing>()
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null }
+    }
 
-    suspend fun getListingsByIds(ids: List<String>): List<Listing> = try {
-        if (ids.isEmpty()) emptyList()
-        else supabase.from("listings")
-            .select { filter { isIn("id", ids) } }
-            .decodeList<Listing>()
-    } catch (e: Exception) { emptyList() }
+    suspend fun getListingsByIds(ids: List<String>): List<Listing> {
+        if (ids.isEmpty()) return emptyList()
+        
+        val cached = com.kapwadvo.app.KapwaDVOApp.database.listingDao().getListingsByIds(ids)
+        if (cached.size == ids.size) return cached.map { it.toListing() }
+        
+        return try {
+            supabase.from("listings")
+                .select { filter { isIn("id", ids) } }
+                .decodeList<Listing>()
+        } catch (e: Exception) { 
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            cached.map { it.toListing() }
+        }
+    }
 
     suspend fun createListing(insert: ListingInsert) {
         supabase.from("listings").insert(insert)

@@ -59,13 +59,13 @@ object BookingRepository {
                 .select { filter { isIn("listing_id", listingIds) } }
                 .decodeList<Booking>()
             val cached = bookings.map { com.kapwadvo.app.data.local.entity.CachedBooking.from(it) }
-            // Delete stale owner bookings (even if empty to wipe all)
-            com.kapwadvo.app.KapwaDVOApp.database.bookingDao().deleteStaleListingsBookings(listingIds, bookings.map { it.id })
+            val validIds = if (bookings.isEmpty()) listOf("dummy_id") else bookings.map { it.id }
+            com.kapwadvo.app.KapwaDVOApp.database.bookingDao().deleteStaleListingsBookings(listingIds, validIds)
             
             if (cached.isNotEmpty()) {
                 com.kapwadvo.app.KapwaDVOApp.database.bookingDao().insertAll(cached)
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;}
     }
 
     suspend fun updateBookingStatus(id: String, listingId: String, status: String) {

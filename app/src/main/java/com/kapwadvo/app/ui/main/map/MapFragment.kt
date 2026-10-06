@@ -83,6 +83,7 @@ class MapFragment : Fragment() {
         parentFragmentManager.setFragmentResultListener("detail_dismissed", viewLifecycleOwner) { _, _ ->
             if (UserSession.isLoggedIn()) {
                 viewLifecycleOwner.lifecycleScope.launch {
+                    val b = _binding ?: return@launch
                     val uid = UserSession.userId ?: return@launch
                     val saved = SavedRepository.getSavedForUser(uid)
                     savedIds = saved.map { it.listingId }.toMutableSet()
@@ -145,6 +146,7 @@ class MapFragment : Fragment() {
                 searchJob?.cancel()
                 searchJob = viewLifecycleOwner.lifecycleScope.launch {
                     kotlinx.coroutines.delay(300)
+                    val b = _binding ?: return@launch
                     refreshPins()
                 }
             }
@@ -257,10 +259,13 @@ class MapFragment : Fragment() {
         binding.progressBar.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
             allListings = ListingRepository.getApprovedListings()
+            
+            val b = _binding ?: return@launch
+            val ctx = context ?: return@launch
 
             val names = allListings.map { it.name }
-            val adapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, names)
-            binding.etSearch.setAdapter(adapter)
+            val adapter = android.widget.ArrayAdapter(ctx, android.R.layout.simple_dropdown_item_1line, names)
+            b.etSearch.setAdapter(adapter)
 
             if (UserSession.isLoggedIn()) {
                 val uid = UserSession.userId
@@ -270,7 +275,7 @@ class MapFragment : Fragment() {
                 }
             }
 
-            binding.progressBar.visibility = View.GONE
+            b.progressBar.visibility = View.GONE
             updateChipCounts()
             refreshPins()
         }

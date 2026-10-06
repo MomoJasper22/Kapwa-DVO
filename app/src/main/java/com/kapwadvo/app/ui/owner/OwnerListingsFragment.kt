@@ -42,13 +42,37 @@ class OwnerListingsFragment : Fragment() {
             onDelete = { confirmDelete(it) },
             onToggleBooking = { listing, enable ->
                 viewLifecycleOwner.lifecycleScope.launch {
+                    val b = _binding ?: return@launch
+                    val ctx = context ?: return@launch
+                    val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                    
                     try {
-                        ListingRepository.toggleBookingEnabled(listing.id, enable)
-                        val msg = if (enable) "Booking enabled" else "Booking disabled"
-                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        if (isOnline) {
+                            ListingRepository.toggleBookingEnabled(listing.id, enable)
+                            val msg = if (enable) "Booking enabled" else "Booking disabled"
+                            Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+                        } else {
+                            val dao = com.kapwadvo.app.KapwaDVOApp.database.listingDao()
+                            val cached = dao.getListingById(listing.id)
+                            if (cached != null) {
+                                dao.insert(cached.copy(bookingsEnabled = enable))
+                            }
+                            
+                            val payload = org.json.JSONObject().apply {
+                                put("listingId", listing.id)
+                                put("enable", enable)
+                            }.toString()
+                            com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(
+                                com.kapwadvo.app.UserSession.userId ?: "",
+                                "DISABLE_BOOKING",
+                                payload
+                            )
+                            Toast.makeText(ctx, "You are offline. Changes will be synced once online.", Toast.LENGTH_LONG).show()
+                        }
                         load()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Failed to update booking setting. Please try again", Toast.LENGTH_LONG).show()
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        Toast.makeText(ctx, "Failed to update booking setting. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             },
@@ -78,9 +102,10 @@ class OwnerListingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val uid = UserSession.userId ?: return@launch
             ListingRepository.observeOwnerListings(uid).collect { listings ->
-                binding.progressBar.visibility = View.GONE
+                val cb = _binding ?: return@collect
+                cb.progressBar.visibility = View.GONE
                 adapter.submitList(listings)
-                binding.tvEmpty.visibility = if (listings.isEmpty()) View.VISIBLE else View.GONE
+                cb.tvEmpty.visibility = if (listings.isEmpty()) View.VISIBLE else View.GONE
             }
         }
     }
@@ -97,12 +122,14 @@ class OwnerListingsFragment : Fragment() {
             .setTitle("Delete ${listing.name}?")
             .setPositiveButton("Delete") { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch {
+                    val b = _binding ?: return@launch
+                    val ctx = context ?: return@launch
                     try {
                         ListingRepository.deleteListing(listing.id)
-                        Toast.makeText(context, "Listing deleted", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(ctx, "Listing deleted", Toast.LENGTH_SHORT).show()
                         load()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Failed to delete listing. Please try again", Toast.LENGTH_LONG).show()
+                    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                        Toast.makeText(ctx, "Failed to delete listing. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -116,12 +143,14 @@ class OwnerListingsFragment : Fragment() {
             .setMessage("Are you sure you want to cancel this update request? Your pending changes will be lost.")
             .setPositiveButton("Cancel Update") { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch {
+                    val b = _binding ?: return@launch
+                    val ctx = context ?: return@launch
                     try {
                         ListingRepository.cancelPendingUpdate(listing.id)
-                        Toast.makeText(context, "Update request cancelled", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(ctx, "Update request cancelled", Toast.LENGTH_SHORT).show()
                         load()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Failed to cancel update request. Please try again", Toast.LENGTH_LONG).show()
+                    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                        Toast.makeText(ctx, "Failed to cancel update request. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             }

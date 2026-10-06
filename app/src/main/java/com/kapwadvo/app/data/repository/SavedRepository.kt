@@ -29,7 +29,7 @@ object SavedRepository {
             val cached = saved.map { com.kapwadvo.app.data.local.entity.CachedSavedLocation.from(it) }
             com.kapwadvo.app.KapwaDVOApp.database.savedLocationDao().clearForUser(userId)
             com.kapwadvo.app.KapwaDVOApp.database.savedLocationDao().insertAll(cached)
-        } catch (e: Exception) {
+        } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
         }
     }
 

@@ -433,7 +433,7 @@ class ListingFormFragment : Fragment() {
         }
 
         binding.btnSave.isEnabled = false
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val existingUrls = editingListing?.photoUrls ?: emptyList()
                 val newUrls = selectedPhotoUris.map { uri ->

@@ -51,11 +51,13 @@ class OwnerBookingsFragment : Fragment() {
                     .setMessage("Are you sure you want to accept this booking request?\n\nDate: ${booking.date}")
                     .setPositiveButton("Accept") { _, _ ->
                         viewLifecycleOwner.lifecycleScope.launch {
+                            val b = _binding ?: return@launch
+                            val ctx = context ?: return@launch
                             try {
                                 BookingRepository.updateBookingStatus(booking.id, booking.listingId, "accepted")
-                                Toast.makeText(context, "Booking accepted", Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
+                                Toast.makeText(ctx, "Booking accepted", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                                Toast.makeText(ctx, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -78,6 +80,8 @@ class OwnerBookingsFragment : Fragment() {
                     .setPositiveButton("Decline") { _, _ ->
                         val reason = input.text.toString().trim()
                         viewLifecycleOwner.lifecycleScope.launch {
+                            val b = _binding ?: return@launch
+                            val ctx = context ?: return@launch
                             try {
                                 BookingRepository.updateBookingStatus(
                                     booking.id,
@@ -85,9 +89,9 @@ class OwnerBookingsFragment : Fragment() {
                                     "declined",
                                     if (reason.isNotEmpty()) reason else null
                                 )
-                                Toast.makeText(context, "Booking declined", Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
+                                Toast.makeText(ctx, "Booking declined", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
+                                Toast.makeText(ctx, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -138,12 +142,14 @@ class OwnerBookingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ownerId = com.kapwadvo.app.UserSession.userId ?: return@launch
             ListingRepository.observeOwnerListings(ownerId).collect { myListings ->
+                val b = _binding ?: return@collect
                 listingsMap = myListings.associateBy { it.id }
                 val listingIds = myListings.map { it.id }
                 
                 bookingsJob?.cancel()
                 bookingsJob = launch {
                     BookingRepository.observeBookingsForListings(listingIds).collect { bookings ->
+                        val cb = _binding ?: return@collect
                         allBookingsList = bookings
                         val userIds = bookings.map { it.userId }.distinct()
                         
@@ -151,10 +157,10 @@ class OwnerBookingsFragment : Fragment() {
                         val profiles = AuthRepository.getProfiles(userIds)
                         profilesMap = profiles.associateBy { it.id }
 
-                        binding.progressBar.visibility = View.GONE
+                        cb.progressBar.visibility = View.GONE
                         updateDashboard()
                         applySorting()
-                        binding.tvEmpty.visibility = if (bookings.none { it.status == "pending" }) View.VISIBLE else View.GONE
+                        cb.tvEmpty.visibility = if (bookings.none { it.status == "pending" }) View.VISIBLE else View.GONE
                     }
                 }
             }
@@ -188,7 +194,7 @@ class OwnerBookingsFragment : Fragment() {
                         } else {
                             doneCount++
                         }
-                    } catch (e: Exception) {
+                    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e;
                         // Fallback parsing or assume done if we can't parse
                         doneCount++
                     }

@@ -36,10 +36,12 @@ class ReservationDetailFragment : Fragment() {
         super.onCreate(savedInstanceState)
         val bookingJson = arguments?.getString(ARG_BOOKING)
         val listingJson = arguments?.getString(ARG_LISTING)
-        if (bookingJson != null && listingJson != null) {
-            booking = safeJson.decodeFromString(bookingJson)
-            listing = safeJson.decodeFromString(listingJson)
-        }
+        try {
+            if (bookingJson != null && listingJson != null) {
+                booking = safeJson.decodeFromString(bookingJson)
+                listing = safeJson.decodeFromString(listingJson)
+            }
+        } catch (e: Exception) {}
     }
 
     override fun onCreateView(

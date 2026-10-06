@@ -17,7 +17,7 @@ object PublicSpotRepository {
         supabase.from("public_spot_requests")
             .select { filter { eq("status", "pending") } }
             .decodeList<PublicSpotRequest>()
-    } catch (e: Exception) { emptyList() }
+    } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
 
     suspend fun updateRequestStatus(id: String, status: String) {
         supabase.from("public_spot_requests").update(

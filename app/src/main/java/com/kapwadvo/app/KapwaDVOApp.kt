@@ -28,6 +28,10 @@ class KapwaDVOApp : Application() {
         Configuration.getInstance().apply {
             load(applicationContext, getSharedPreferences("osmdroid", MODE_PRIVATE))
             userAgentValue = packageName
+            val cacheDir = java.io.File(applicationContext.cacheDir, "osmdroid")
+            if (!cacheDir.exists()) cacheDir.mkdirs()
+            osmdroidBasePath = cacheDir
+            osmdroidTileCache = cacheDir
         }
         initSupabase(applicationContext)
         CategoryManager.init(this)

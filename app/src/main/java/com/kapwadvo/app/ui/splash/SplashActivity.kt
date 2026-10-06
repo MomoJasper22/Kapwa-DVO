@@ -70,9 +70,15 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun navigateBasedOnRole() {
-        // Admins go to Admin Mode, everyone else (including Owners) defaults to User Mode
         val intent = if (UserSession.isAdmin()) {
             Intent(this, AdminActivity::class.java)
+        } else if (UserSession.isOwner()) {
+            val mode = getSharedPreferences("app_prefs", MODE_PRIVATE).getString("active_mode", "owner")
+            if (mode == "owner") {
+                Intent(this, BusinessOwnerActivity::class.java)
+            } else {
+                Intent(this, MainActivity::class.java)
+            }
         } else {
             Intent(this, MainActivity::class.java)
         }

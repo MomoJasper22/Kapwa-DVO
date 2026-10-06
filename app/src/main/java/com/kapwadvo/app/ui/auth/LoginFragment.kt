@@ -48,7 +48,7 @@ class LoginFragment : Fragment() {
 
         binding.btnLogin.isEnabled = false
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 AuthRepository.login(email, password)
                 (activity as? AuthActivity)?.navigateToMain()
