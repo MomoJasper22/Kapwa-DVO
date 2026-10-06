@@ -7,12 +7,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.kapwadvo.app.UserSession
 import com.kapwadvo.app.data.repository.AuthRepository
+import com.kapwadvo.app.supabase
 import com.kapwadvo.app.ui.admin.AdminActivity
 import com.kapwadvo.app.ui.auth.AuthActivity
 import com.kapwadvo.app.ui.main.MainActivity
 import com.kapwadvo.app.ui.owner.BusinessOwnerActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import io.github.jan.supabase.auth.auth
 
 class SplashActivity : AppCompatActivity() {
 
@@ -31,11 +33,33 @@ class SplashActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
+            try {
+                supabase.auth.awaitInitialization()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             delay(1200)
             try {
-                if (AuthRepository.hasSession()) {
-                    AuthRepository.loadSession()
-                    navigateBasedOnRole()
+                if (AuthRepository.getCurrentUser() != null) {
+                    val loadedFromCache = AuthRepository.loadSessionFromCache()
+                    if (loadedFromCache) {
+                        navigateBasedOnRole()
+                        // Optionally trigger a background sync here
+                        launch {
+                            try {
+                                if (AuthRepository.hasSession()) {
+                                    AuthRepository.loadSession()
+                                }
+                            } catch(e: Exception) {}
+                        }
+                    } else {
+                        if (AuthRepository.hasSession()) {
+                            AuthRepository.loadSession()
+                            navigateBasedOnRole()
+                        } else {
+                            navigateToAuth()
+                        }
+                    }
                 } else {
                     navigateToAuth()
                 }
@@ -46,9 +70,11 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun navigateBasedOnRole() {
-        val intent = when {
-            UserSession.isAdmin() -> Intent(this, AdminActivity::class.java)
-            else -> Intent(this, MainActivity::class.java)
+        // Admins go to Admin Mode, everyone else (including Owners) defaults to User Mode
+        val intent = if (UserSession.isAdmin()) {
+            Intent(this, AdminActivity::class.java)
+        } else {
+            Intent(this, MainActivity::class.java)
         }
         startActivity(intent)
         finish()

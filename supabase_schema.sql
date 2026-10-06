@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.listings (
     address TEXT,
     hours TEXT,
     contact TEXT,
+    pending_updates JSONB DEFAULT NULL,
     photo_urls TEXT[] DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -85,6 +86,12 @@ CREATE TABLE IF NOT EXISTS public.owner_applications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    business_name TEXT,
+    category TEXT,
+    contact_info TEXT,
+    business_address TEXT,
+    permit_number TEXT,
+    reason TEXT,
     submitted_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (user_id)
 );
@@ -207,3 +214,8 @@ CREATE POLICY "Anyone can view listing_photos" ON storage.objects FOR SELECT USI
 CREATE POLICY "Authenticated users can upload listing_photos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'listing_photos' AND auth.role() = 'authenticated');
 CREATE POLICY "Owners can update listing_photos" ON storage.objects FOR UPDATE USING (bucket_id = 'listing_photos' AND auth.role() = 'authenticated');
 CREATE POLICY "Owners can delete listing_photos" ON storage.objects FOR DELETE USING (bucket_id = 'listing_photos' AND auth.role() = 'authenticated');
+
+-- ============================================================
+-- Realtime Setup
+-- ============================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.listings;

@@ -3,7 +3,12 @@ package com.kapwadvo.app.ui.main
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import com.kapwadvo.app.R
 import com.kapwadvo.app.databinding.ActivityMainBinding
 import com.kapwadvo.app.ui.main.explore.ExploreFragment
@@ -21,6 +26,11 @@ class MainActivity : AppCompatActivity() {
     private val profileFragment = ProfileFragment()
     private var activeFragment: Fragment = exploreFragment
 
+    private val tabHistory = java.util.Stack<Int>()
+    private var isProgrammaticSelection = false
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,21 +41,55 @@ class MainActivity : AppCompatActivity() {
 
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            // Only apply top padding to the root layout to protect from status bar
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+            val ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())
+            val bottom = if (ime.bottom > 0) ime.bottom else 0
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, bottom)
             insets
         }
 
         initFragments()
         setupBottomNav()
         
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.collect { isOnline ->
+                    binding.tvOfflineBanner.visibility = if (isOnline) android.view.View.GONE else android.view.View.VISIBLE
+                    
+                    if (isOnline) {
+                        val oneTimeSync = androidx.work.OneTimeWorkRequestBuilder<com.kapwadvo.app.workers.NetworkSyncWorker>().build()
+                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueueUniqueWork(
+                            "KapwaNetworkReconnectSync",
+                            androidx.work.ExistingWorkPolicy.KEEP,
+                            oneTimeSync
+                        )
+                    }
+                }
+            }
+        }
+        
         supportFragmentManager.addOnBackStackChangedListener {
             if (supportFragmentManager.backStackEntryCount > 0) {
                 binding.bottomNav.visibility = android.view.View.GONE
             } else {
-                binding.bottomNav.visibility = android.view.View.VISIBLE
+                binding.bottomNav.visibility = if (activeFragment == profileFragment) android.view.View.GONE else android.view.View.VISIBLE
             }
         }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (supportFragmentManager.backStackEntryCount > 0) {
+                    supportFragmentManager.popBackStack()
+                } else if (tabHistory.isNotEmpty()) {
+                    val prevTab = tabHistory.pop()
+                    isProgrammaticSelection = true
+                    binding.bottomNav.selectedItemId = prevTab
+                    isProgrammaticSelection = false
+                } else {
+                    // Minimize the app instead of closing it completely
+                    moveTaskToBack(true)
+                }
+            }
+        })
     }
 
     private fun initFragments() {
@@ -59,6 +103,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupBottomNav() {
         binding.bottomNav.setOnItemSelectedListener { item ->
+            if (binding.bottomNav.selectedItemId != item.itemId && !isProgrammaticSelection) {
+                tabHistory.push(binding.bottomNav.selectedItemId)
+            }
+
             val target: Fragment = when (item.itemId) {
                 R.id.nav_explore -> exploreFragment
                 R.id.nav_map -> mapFragment
@@ -84,4 +132,7 @@ class MainActivity : AppCompatActivity() {
         }
         binding.bottomNav.selectedItemId = R.id.nav_explore
     }
+
+
+
 }

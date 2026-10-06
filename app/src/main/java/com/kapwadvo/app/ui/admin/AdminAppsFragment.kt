@@ -33,10 +33,10 @@ class AdminAppsFragment : Fragment() {
                     try {
                         ApplicationRepository.updateApplicationStatus(app.id, "approved")
                         AdminRepository.setUserRole(app.userId, "owner")
-                        Toast.makeText(context, "Approved — user is now a Business Owner", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Application approved — user is now a Business Owner", Toast.LENGTH_SHORT).show()
                         load()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Failed to process application. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             },
@@ -44,10 +44,10 @@ class AdminAppsFragment : Fragment() {
                 lifecycleScope.launch {
                     try {
                         ApplicationRepository.updateApplicationStatus(app.id, "rejected")
-                        Toast.makeText(context, "Rejected", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Application rejected", Toast.LENGTH_SHORT).show()
                         load()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Failed to process application. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             }

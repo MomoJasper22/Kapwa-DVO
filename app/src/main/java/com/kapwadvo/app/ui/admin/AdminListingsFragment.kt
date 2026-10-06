@@ -72,10 +72,10 @@ class AdminListingsFragment : Fragment() {
                 lifecycleScope.launch {
                     try {
                         ListingRepository.deleteListing(listing.id)
-                        Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Listing deleted", Toast.LENGTH_SHORT).show()
                         loadListings()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Failed to delete listing. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             }

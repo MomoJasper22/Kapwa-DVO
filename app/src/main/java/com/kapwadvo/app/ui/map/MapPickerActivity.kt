@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.kapwadvo.app.databinding.ActivityMapPickerBinding
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -62,6 +62,9 @@ class MapPickerActivity : AppCompatActivity() {
 
         binding.btnBackPicker.setOnClickListener { finish() }
 
+        binding.fabZoomIn.setOnClickListener { binding.mapView.controller.zoomIn() }
+        binding.fabZoomOut.setOnClickListener { binding.mapView.controller.zoomOut() }
+
         binding.btnConfirmPin.setOnClickListener {
             val lat = selectedLat ?: return@setOnClickListener
             val lng = selectedLng ?: return@setOnClickListener
@@ -79,6 +82,7 @@ class MapPickerActivity : AppCompatActivity() {
         binding.mapView.apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
+            setBuiltInZoomControls(false)
             controller.setZoom(14.0)
             controller.setCenter(davaoCenter)
         }
@@ -119,7 +123,7 @@ class MapPickerActivity : AppCompatActivity() {
     }
 
     private fun reverseGeocode(lat: Double, lng: Double) {
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             val address = try {
                 if (Geocoder.isPresent()) {
                     val geocoder = Geocoder(this@MapPickerActivity, Locale.getDefault())
@@ -145,9 +149,11 @@ class MapPickerActivity : AppCompatActivity() {
             }
 
             withContext(Dispatchers.Main) {
-                selectedAddress = address
-                binding.tvSelectedAddress.text = address
-                binding.btnConfirmPin.isEnabled = true
+                if (!isFinishing && !isDestroyed) {
+                    selectedAddress = address
+                    binding.tvSelectedAddress.text = address
+                    binding.btnConfirmPin.isEnabled = true
+                }
             }
         }
     }

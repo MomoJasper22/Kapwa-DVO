@@ -22,20 +22,20 @@ class VerifyEmailFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var pollingJob: Job? = null
-    private var userEmail: String = ""
-    private var userPass: String = ""
+    
+    object PendingStore {
+        var email: String = ""
+        var pass: String = ""
+        
+        fun clear() {
+            email = ""
+            pass = ""
+        }
+    }
 
     companion object {
-        private const val ARG_EMAIL = "user_email"
-        private const val ARG_PASS = "user_pass"
-
-        fun newInstance(email: String, password: String): VerifyEmailFragment {
-            return VerifyEmailFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_EMAIL, email)
-                    putString(ARG_PASS, password)
-                }
-            }
+        fun newInstance(): VerifyEmailFragment {
+            return VerifyEmailFragment()
         }
     }
 
@@ -49,9 +49,7 @@ class VerifyEmailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        userEmail = arguments?.getString(ARG_EMAIL) ?: ""
-        userPass = arguments?.getString(ARG_PASS) ?: ""
-        binding.tvEmail.text = userEmail
+        binding.tvEmail.text = PendingStore.email
 
         startPolling()
 
@@ -77,7 +75,7 @@ class VerifyEmailFragment : Fragment() {
             // Because we don't have a session yet, the only reliable way to check 
             // if the email was confirmed is to attempt to log in.
             // If it succeeds, the email has been confirmed!
-            AuthRepository.login(userEmail, userPass)
+            AuthRepository.login(PendingStore.email, PendingStore.pass)
             
             pollingJob?.cancel()
             proceedToOnboarding()
@@ -97,14 +95,14 @@ class VerifyEmailFragment : Fragment() {
         binding.btnResend.isEnabled = false
         lifecycleScope.launch {
             try {
-                AuthRepository.resendConfirmationEmail(userEmail)
-                Toast.makeText(context, "Confirmation email resent!", Toast.LENGTH_SHORT).show()
+                AuthRepository.resendConfirmationEmail(PendingStore.email)
+                Toast.makeText(context, "Confirmation email resent", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                Toast.makeText(context, "Failed to resend: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to resend confirmation email", Toast.LENGTH_LONG).show()
             } finally {
                 // Re-enable after 30 seconds to prevent spam
                 delay(30_000)
-                binding.btnResend.isEnabled = true
+                _binding?.btnResend?.isEnabled = true
             }
         }
     }
@@ -113,5 +111,8 @@ class VerifyEmailFragment : Fragment() {
         super.onDestroyView()
         pollingJob?.cancel()
         _binding = null
+        if (requireActivity().isFinishing) {
+            PendingStore.clear()
+        }
     }
 }

@@ -23,22 +23,22 @@ class OnboardingActivity : AppCompatActivity() {
             description = "Your personal guide to discovering the hidden gems and beloved destinations of Davao City."
         ),
         OnboardingPage(
-            imageRes    = android.R.drawable.ic_menu_compass,
+            imageRes    = R.drawable.ic_onboarding_compass,
             title       = "Explore Destinations",
             description = "Browse tourist spots, local businesses, hidden gems, food places, and accommodations all in one place."
         ),
         OnboardingPage(
-            imageRes    = android.R.drawable.ic_menu_mapmode,
+            imageRes    = R.drawable.ic_onboarding_map,
             title       = "Find Places on the Map",
             description = "Use the interactive map to search nearby spots and navigate to your next adventure."
         ),
         OnboardingPage(
-            imageRes    = android.R.drawable.ic_menu_save,
+            imageRes    = R.drawable.ic_onboarding_save,
             title       = "Save Your Favourites",
             description = "Bookmark spots you love and revisit them anytime from your Saved tab."
         ),
         OnboardingPage(
-            imageRes    = android.R.drawable.ic_menu_agenda,
+            imageRes    = R.drawable.ic_onboarding_book,
             title       = "Book with Ease",
             description = "Request bookings directly through the app and track all your reservations in one place."
         )

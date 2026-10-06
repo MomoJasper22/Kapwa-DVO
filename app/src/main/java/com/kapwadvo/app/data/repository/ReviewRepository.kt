@@ -12,25 +12,48 @@ object ReviewRepository {
     // ── Reviews ─────────────────────────────────────────────────────────────
 
     suspend fun getReviewsForListing(listingId: String): List<ReviewWithAuthor> {
-        val reviews = try {
-            supabase.from("reviews")
+        val cached = com.kapwadvo.app.KapwaDVOApp.database.reviewDao().getReviewsForListing(listingId)
+        return cached.map { it.toReviewWithAuthor() }
+    }
+
+    suspend fun syncReviewsForListing(listingId: String) {
+        try {
+            val reviews = supabase.from("reviews")
                 .select { filter { eq("listing_id", listingId) } }
                 .decodeList<Review>()
-        } catch (e: Exception) { emptyList() }
+            
+            val userIds = reviews.map { it.userId }.distinct()
+            val profiles = AuthRepository.getProfiles(userIds).associateBy { it.id }
 
-        val profiles = reviews.map { it.userId }.distinct()
-            .mapNotNull { AuthRepository.getProfile(it) }
-            .associateBy { it.id }
-
-        return reviews.map { r ->
-            val p = profiles[r.userId]
-            val name = p?.fullName?.ifEmpty { "User" } ?: "User"
-            val initials = listOfNotNull(
-                p?.firstName?.firstOrNull()?.uppercaseChar()?.toString(),
-                p?.lastName?.firstOrNull()?.uppercaseChar()?.toString()
-            ).joinToString("").ifEmpty { "U" }
-            ReviewWithAuthor(r.id, r.userId, r.rating, r.comment, r.createdAt, name, initials)
+            val cachedReviews = reviews.map { r ->
+                val p = profiles[r.userId]
+                val name = p?.fullName?.ifEmpty { "User" } ?: "User"
+                val initials = listOfNotNull(
+                    p?.firstName?.firstOrNull()?.uppercaseChar()?.toString(),
+                    p?.lastName?.firstOrNull()?.uppercaseChar()?.toString()
+                ).joinToString("").ifEmpty { "U" }
+                com.kapwadvo.app.data.local.entity.CachedReview(
+                    id = r.id,
+                    listingId = r.listingId,
+                    userId = r.userId,
+                    rating = r.rating,
+                    comment = r.comment,
+                    createdAt = r.createdAt,
+                    authorName = name,
+                    authorInitials = initials,
+                    authorAvatarUrl = p?.avatarUrl
+                )
+            }
+            com.kapwadvo.app.KapwaDVOApp.database.reviewDao().deleteReviewsForListing(listingId)
+            com.kapwadvo.app.KapwaDVOApp.database.reviewDao().insertReviews(cachedReviews)
+        } catch (e: Exception) {
+            // Silently fail sync
         }
+    }
+    suspend fun getRawReviewsForListings(listingIds: List<String>): List<Review> {
+        if (listingIds.isEmpty()) return emptyList()
+        val cached = com.kapwadvo.app.KapwaDVOApp.database.reviewDao().getReviewsForListings(listingIds)
+        return cached.map { it.toReview() }
     }
 
     suspend fun getUserReview(listingId: String, userId: String): Review? = try {
@@ -53,41 +76,68 @@ object ReviewRepository {
                 }
             ) { filter { eq("listing_id", insert.listingId); eq("user_id", insert.userId) } }
         }
+        syncReviewsForListing(insert.listingId)
     }
 
     // ── Comments (unlimited per user) ────────────────────────────────────────
 
     suspend fun getCommentsForListing(listingId: String): List<CommentWithAuthor> {
-        val comments = try {
-            supabase.from("review_comments")
+        val cached = com.kapwadvo.app.KapwaDVOApp.database.reviewDao().getCommentsForListing(listingId)
+        return cached.map { it.toCommentWithAuthor() }
+    }
+
+    suspend fun syncCommentsForListing(listingId: String) {
+        try {
+            val comments = supabase.from("review_comments")
                 .select { filter { eq("listing_id", listingId) } }
                 .decodeList<ReviewComment>()
-        } catch (e: Exception) { emptyList() }
+            
+            val userIds = comments.map { it.userId }.distinct()
+            val profiles = AuthRepository.getProfiles(userIds).associateBy { it.id }
 
-        val profiles = comments.map { it.userId }.distinct()
-            .mapNotNull { AuthRepository.getProfile(it) }
-            .associateBy { it.id }
-
-        return comments.map { c ->
-            val p = profiles[c.userId]
-            val name = p?.fullName?.ifEmpty { "User" } ?: "User"
-            val initials = listOfNotNull(
-                p?.firstName?.firstOrNull()?.uppercaseChar()?.toString(),
-                p?.lastName?.firstOrNull()?.uppercaseChar()?.toString()
-            ).joinToString("").ifEmpty { "U" }
-            CommentWithAuthor(c.id, c.userId, c.content, c.createdAt, name, initials)
+            val cachedComments = comments.map { c ->
+                val p = profiles[c.userId]
+                val name = p?.fullName?.ifEmpty { "User" } ?: "User"
+                val initials = listOfNotNull(
+                    p?.firstName?.firstOrNull()?.uppercaseChar()?.toString(),
+                    p?.lastName?.firstOrNull()?.uppercaseChar()?.toString()
+                ).joinToString("").ifEmpty { "U" }
+                com.kapwadvo.app.data.local.entity.CachedReviewComment(
+                    id = c.id,
+                    listingId = c.listingId,
+                    userId = c.userId,
+                    content = c.content,
+                    createdAt = c.createdAt,
+                    authorName = name,
+                    authorInitials = initials,
+                    authorAvatarUrl = p?.avatarUrl
+                )
+            }
+            com.kapwadvo.app.KapwaDVOApp.database.reviewDao().deleteCommentsForListing(listingId)
+            com.kapwadvo.app.KapwaDVOApp.database.reviewDao().insertComments(cachedComments)
+        } catch (e: Exception) {
+            // Silently fail sync
         }
     }
 
     suspend fun addComment(insert: ReviewCommentInsert) {
         supabase.from("review_comments").insert(insert)
+        syncCommentsForListing(insert.listingId)
     }
 
     suspend fun deleteReview(id: String) {
+        val review = supabase.from("reviews").select { filter { eq("id", id) } }.decodeSingleOrNull<Review>()
         supabase.from("reviews").delete { filter { eq("id", id) } }
+        if (review != null) {
+            syncReviewsForListing(review.listingId)
+        }
     }
 
     suspend fun deleteComment(id: String) {
+        val comment = supabase.from("review_comments").select { filter { eq("id", id) } }.decodeSingleOrNull<ReviewComment>()
         supabase.from("review_comments").delete { filter { eq("id", id) } }
+        if (comment != null) {
+            syncCommentsForListing(comment.listingId)
+        }
     }
 }

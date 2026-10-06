@@ -38,18 +38,51 @@
     </androidx.cardview.widget.CardView>
 
     <!-- Crosshair center hint -->
-    <TextView
+    <ImageView
         android:id="@+id/tvCrosshair"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="＋"
-        android:textSize="32sp"
-        android:textColor="@color/primary"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_add_cross"
+        app:tint="@color/primary"
         android:alpha="0.6"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Custom Zoom Controls on the left -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="120dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabZoomIn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_add"
+            android:contentDescription="Zoom In"
+            app:backgroundTint="@color/surface"
+            app:tint="@color/primary"
+            app:fabSize="mini"
+            app:elevation="4dp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabZoomOut"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_remove"
+            android:contentDescription="Zoom Out"
+            app:backgroundTint="@color/surface"
+            app:tint="@color/primary"
+            app:fabSize="mini"
+            app:elevation="4dp" />
+    </LinearLayout>
 
     <!-- Bottom confirm card -->
     <androidx.cardview.widget.CardView

@@ -74,7 +74,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginTop="12dp"
         android:backgroundTint="@color/error"
-        app:layout_constraintTop_toBottomOf="@id/flAvatar"
+        app:layout_constraintTop_toBottomOf="@id/tvCategoryDisplay"
         app:layout_constraintEnd_toStartOf="@id/btnApprove" />
 
     <com.google.android.material.button.MaterialButton
@@ -84,6 +84,30 @@
         android:text="@string/approve"
         android:textSize="12sp"
         app:layout_constraintTop_toTopOf="@id/btnReject"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/tvBusinessName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="@color/text_primary"
+        android:layout_marginTop="10dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/flAvatar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/tvCategoryDisplay"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginTop="2dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvBusinessName"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

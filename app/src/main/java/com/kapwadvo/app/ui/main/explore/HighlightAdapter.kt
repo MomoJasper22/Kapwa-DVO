@@ -15,6 +15,7 @@ class HighlightAdapter(
 ) : RecyclerView.Adapter<HighlightAdapter.ViewHolder>() {
 
     private val items = mutableListOf<HighlightItem>()
+    private val ownerNames = mutableMapOf<String, String>()
 
     fun submitList(list: List<HighlightItem>) {
         items.clear()
@@ -28,28 +29,42 @@ class HighlightAdapter(
         fun bind(item: HighlightItem) {
             val listing = item.listing
             binding.tvHighlightName.text = listing.name
-            binding.tvHighlightCategory.text = listing.category
+            binding.tvHighlightCategory.text = com.kapwadvo.app.data.CategoryManager.toDisplayString(listing.category)
             binding.tvHighlightDescription.text = listing.description
-            binding.tvHighlightPhotoLabel.text = "[ ${listing.name} ]"
+            
+            if (listing.photoUrls.isNotEmpty()) {
+                binding.ivHighlightPhoto.visibility = android.view.View.VISIBLE
+                binding.tvHighlightPhotoLabel.visibility = android.view.View.GONE
+                com.bumptech.glide.Glide.with(binding.root.context)
+                    .load(listing.photoUrls.first())
+                    .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
+                    .placeholder(android.R.color.darker_gray)
+                    .error(android.R.color.darker_gray)
+                    .into(binding.ivHighlightPhoto)
+            } else {
+                binding.ivHighlightPhoto.visibility = android.view.View.GONE
+                binding.tvHighlightPhotoLabel.visibility = android.view.View.VISIBLE
+                binding.tvHighlightPhotoLabel.text = "[ Photo: ${listing.name} ]"
+            }
 
             // Rating display
-            val stars = "★".repeat(item.avgRating.toInt().coerceIn(0, 5)) +
-                        "☆".repeat((5 - item.avgRating.toInt()).coerceIn(0, 5))
-            binding.tvHighlightRating.text = "$stars  ${String.format("%.1f", item.avgRating)} (${item.reviewCount})"
+            val ratingStr = String.format("%.1f", item.avgRating)
+            binding.tvHighlightRating.text = "$ratingStr (${item.reviewCount})"
 
             binding.root.setOnClickListener { onItemClick(listing) }
             
             val ownerId = listing.ownerId
             if (ownerId != null) {
-                if (listing.ownerName != null) {
-                    binding.tvHighlightOwnerName.text = "By ${listing.ownerName}"
+                val cachedName = listing.ownerName ?: ownerNames[ownerId]
+                if (cachedName != null) {
+                    binding.tvHighlightOwnerName.text = "By $cachedName"
                     binding.tvHighlightOwnerName.visibility = android.view.View.VISIBLE
                 } else {
                     binding.tvHighlightOwnerName.visibility = android.view.View.GONE
                     binding.root.findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
                         val profile = com.kapwadvo.app.data.repository.AuthRepository.getProfile(ownerId)
                         val name = profile?.fullName ?: "Unknown Owner"
-                        listing.ownerName = name
+                        ownerNames[ownerId] = name
                         binding.tvHighlightOwnerName.text = "By $name"
                         binding.tvHighlightOwnerName.visibility = android.view.View.VISIBLE
                     }

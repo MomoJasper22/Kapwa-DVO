@@ -4,15 +4,23 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.kapwadvo.app.UserSession
+import com.kapwadvo.app.R
+import com.kapwadvo.app.data.models.Booking
+import com.kapwadvo.app.data.models.Listing
+import com.kapwadvo.app.data.models.Profile
+import com.kapwadvo.app.data.repository.AuthRepository
 import com.kapwadvo.app.data.repository.BookingRepository
 import com.kapwadvo.app.data.repository.ListingRepository
 import com.kapwadvo.app.databinding.FragmentOwnerBookingsBinding
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class OwnerBookingsFragment : Fragment() {
 
@@ -20,6 +28,10 @@ class OwnerBookingsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var adapter: OwnerBookingAdapter
+    private var allBookingsList = listOf<Booking>()
+    private var profilesMap = mapOf<String, Profile>()
+    private var listingsMap = mapOf<String, Listing>()
+    private var currentSortMode = 0 // 0 = Upcoming First, 1 = Furthest First
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentOwnerBookingsBinding.inflate(inflater, container, false)
@@ -29,50 +41,189 @@ class OwnerBookingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         adapter = OwnerBookingAdapter(
+            onItemClick = { booking, listing ->
+                val sheet = com.kapwadvo.app.ui.main.explore.ListingDetailSheet.newInstance(listing)
+                sheet.show(parentFragmentManager, "ListingDetailSheet")
+            },
             onAccept = { booking ->
-                lifecycleScope.launch {
-                    try {
-                        BookingRepository.updateBookingStatus(booking.id, "accepted")
-                        Toast.makeText(context, "Booking accepted", Toast.LENGTH_SHORT).show()
-                        load()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Accept Booking")
+                    .setMessage("Are you sure you want to accept this booking request?\n\nDate: ${booking.date}")
+                    .setPositiveButton("Accept") { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try {
+                                BookingRepository.updateBookingStatus(booking.id, booking.listingId, "accepted")
+                                Toast.makeText(context, "Booking accepted", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     }
-                }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             },
             onDecline = { booking ->
-                lifecycleScope.launch {
-                    try {
-                        BookingRepository.updateBookingStatus(booking.id, "declined")
-                        Toast.makeText(context, "Booking declined", Toast.LENGTH_SHORT).show()
-                        load()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
+                val inputLayout = android.widget.FrameLayout(requireContext())
+                inputLayout.setPadding(50, 20, 50, 0)
+                val input = android.widget.EditText(requireContext()).apply {
+                    hint = "Optional reason for declining..."
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT
                 }
+                inputLayout.addView(input)
+
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Decline Booking")
+                    .setMessage("Are you sure you want to decline this booking request?\n\nDate: ${booking.date}")
+                    .setView(inputLayout)
+                    .setPositiveButton("Decline") { _, _ ->
+                        val reason = input.text.toString().trim()
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try {
+                                BookingRepository.updateBookingStatus(
+                                    booking.id,
+                                    booking.listingId,
+                                    "declined",
+                                    if (reason.isNotEmpty()) reason else null
+                                )
+                                Toast.makeText(context, "Booking declined", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             }
         )
         binding.rvBookings.layoutManager = LinearLayoutManager(requireContext())
         binding.rvBookings.adapter = adapter
+
+        val sortOptions = listOf("Upcoming First", "Furthest First")
+        val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, sortOptions)
+        binding.spinnerSort.adapter = spinnerAdapter
+        binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                currentSortMode = position
+                applySorting()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        binding.cardBookingSummary.root.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, OwnerBookingHistoryFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+
         load()
     }
+
+    private var bookingsJob: kotlinx.coroutines.Job? = null
 
     private fun load() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmpty.visibility = View.GONE
-        lifecycleScope.launch {
-            val ownerId = UserSession.userId ?: return@launch
-            val myListings = ListingRepository.getListingsByOwner(ownerId)
-            val listingNames = myListings.associate { it.id to it.name }
-
-            val allBookings = myListings.flatMap { listing ->
-                BookingRepository.getBookingsForListing(listing.id)
-            }
-
-            binding.progressBar.visibility = View.GONE
-            adapter.submitList(allBookings, listingNames)
-            binding.tvEmpty.visibility = if (allBookings.isEmpty()) View.VISIBLE else View.GONE
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ownerId = com.kapwadvo.app.UserSession.userId ?: return@launch
+            val myListings = ListingRepository.getListingsByOwner(ownerId) // Uses Room cache
+            listingsMap = myListings.associateBy { it.id }
+            val listingIds = myListings.map { it.id }
+            
+            // Trigger background sync silently
+            BookingRepository.syncListingsBookings(listingIds)
         }
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ownerId = com.kapwadvo.app.UserSession.userId ?: return@launch
+            ListingRepository.observeOwnerListings(ownerId).collect { myListings ->
+                listingsMap = myListings.associateBy { it.id }
+                val listingIds = myListings.map { it.id }
+                
+                bookingsJob?.cancel()
+                bookingsJob = launch {
+                    BookingRepository.observeBookingsForListings(listingIds).collect { bookings ->
+                        allBookingsList = bookings
+                        val userIds = bookings.map { it.userId }.distinct()
+                        
+                        // Note: In offline mode, getProfiles may return empty, which is acceptable
+                        val profiles = AuthRepository.getProfiles(userIds)
+                        profilesMap = profiles.associateBy { it.id }
+
+                        binding.progressBar.visibility = View.GONE
+                        updateDashboard()
+                        applySorting()
+                        binding.tvEmpty.visibility = if (bookings.none { it.status == "pending" }) View.VISIBLE else View.GONE
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateDashboard() {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val now = System.currentTimeMillis()
+
+        var pendingCount = 0
+        var ongoingCount = 0
+        var doneCount = 0
+
+        for (b in allBookingsList) {
+            when (b.status.lowercase()) {
+                "pending" -> pendingCount++
+                "declined", "cancelled", "rejected" -> doneCount++
+                "accepted", "confirmed" -> {
+                    try {
+                        val parts = b.date.split(" ")
+                        val dateStr = parts.getOrNull(0) ?: ""
+                        val timeStr = parts.getOrNull(1) ?: ""
+                        
+                        // Convert AM/PM to 24h format for parsing, or handle it properly.
+                        // Assuming booking date string is stored as "yyyy-MM-dd hh:mm a"
+                        val parsedDate = SimpleDateFormat("yyyy-MM-dd hh:mm a", Locale.getDefault()).parse(b.date)
+                        
+                        if (parsedDate != null && parsedDate.time > now) {
+                            ongoingCount++
+                        } else {
+                            doneCount++
+                        }
+                    } catch (e: Exception) {
+                        // Fallback parsing or assume done if we can't parse
+                        doneCount++
+                    }
+                }
+            }
+        }
+
+        val card = binding.cardBookingSummary
+        val tvPending = card.root.findViewById<android.widget.TextView>(R.id.tvPendingCount)
+        val tvOngoing = card.root.findViewById<android.widget.TextView>(R.id.tvConfirmedCount)
+        val tvDone = card.root.findViewById<android.widget.TextView>(R.id.tvPastCount)
+        
+        // Also update labels if needed
+        val parentOngoing = tvOngoing.parent as android.view.ViewGroup
+        val labelOngoing = parentOngoing.getChildAt(1) as? android.widget.TextView
+        labelOngoing?.text = "On-going"
+
+        tvPending?.text = pendingCount.toString()
+        tvOngoing?.text = ongoingCount.toString()
+        tvDone?.text = doneCount.toString()
+    }
+
+    private fun applySorting() {
+        val pendingList = allBookingsList.filter { it.status == "pending" }
+        if (pendingList.isEmpty()) {
+            adapter.submitList(emptyList(), listingsMap, profilesMap)
+            return
+        }
+
+        val sorted = if (currentSortMode == 0) {
+            pendingList.sortedBy { it.date }
+        } else {
+            pendingList.sortedByDescending { it.date }
+        }
+        adapter.submitList(sorted, listingsMap, profilesMap)
     }
 
     override fun onDestroyView() {

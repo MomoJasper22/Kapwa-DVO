@@ -59,9 +59,11 @@ class AuthActivity : AppCompatActivity() {
     }
 
     fun navigateToMain() {
-        val intent = when {
-            UserSession.isAdmin() -> Intent(this, AdminActivity::class.java)
-            else -> Intent(this, MainActivity::class.java)
+        // Admins go to Admin Mode, everyone else (including Owners) defaults to User Mode
+        val intent = if (UserSession.isAdmin()) {
+            Intent(this, AdminActivity::class.java)
+        } else {
+            Intent(this, MainActivity::class.java)
         }
         startActivity(intent)
         finish()
@@ -80,8 +82,10 @@ class AuthActivity : AppCompatActivity() {
      */
     fun showVerifyEmail(email: String, password: String) {
         binding.tabLayout.visibility = android.view.View.GONE
+        VerifyEmailFragment.PendingStore.email = email
+        VerifyEmailFragment.PendingStore.pass = password
         supportFragmentManager.beginTransaction()
-            .replace(binding.authFragmentContainer.id, VerifyEmailFragment.newInstance(email, password))
+            .replace(binding.authFragmentContainer.id, VerifyEmailFragment.newInstance())
             .commit()
     }
 }

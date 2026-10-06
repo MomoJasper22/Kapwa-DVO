@@ -1,8 +1,10 @@
 package com.kapwadvo.app.ui.admin
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.kapwadvo.app.data.CategoryManager
 import com.kapwadvo.app.data.models.OwnerApplication
 import com.kapwadvo.app.databinding.ItemApplicationBinding
 
@@ -28,6 +30,23 @@ class AdminAppAdapter(
             binding.tvAvatarLetter.text = "U"
             binding.tvSubmittedAt.text = "Submitted: ${app.submittedAt?.take(10) ?: "—"}"
             binding.tvAppStatus.text = app.status.replaceFirstChar { it.uppercase() }
+
+            // Show business name & full admin category (includes "Others: <detail>")
+            if (app.businessName != null) {
+                binding.tvBusinessName.text = "Business: ${app.businessName}"
+                binding.tvBusinessName.visibility = View.VISIBLE
+            } else {
+                binding.tvBusinessName.visibility = View.GONE
+            }
+
+            val catDisplay = CategoryManager.toAdminDisplayString(app.category ?: "")
+            if (catDisplay.isNotEmpty()) {
+                binding.tvCategoryDisplay.text = "Category: $catDisplay"
+                binding.tvCategoryDisplay.visibility = View.VISIBLE
+            } else {
+                binding.tvCategoryDisplay.visibility = View.GONE
+            }
+
             binding.btnApprove.setOnClickListener { onApprove(app) }
             binding.btnReject.setOnClickListener { onReject(app) }
         }

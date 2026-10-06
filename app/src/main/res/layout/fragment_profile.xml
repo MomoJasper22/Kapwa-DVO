@@ -65,7 +65,7 @@
                 android:orientation="vertical"
                 app:layout_constraintGuide_percent="0.92" />
 
-            <!-- Avatar circle placeholder -->
+            <!-- Avatar container -->
             <FrameLayout
                 android:id="@+id/flAvatar"
                 android:layout_width="80dp"
@@ -74,7 +74,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 android:background="@drawable/bg_avatar">
-                <!-- Will be styled as circle in code -->
+
                 <TextView
                     android:id="@+id/tvAvatarLetter"
                     android:layout_width="match_parent"
@@ -84,7 +84,37 @@
                     android:textSize="32sp"
                     android:textStyle="bold"
                     android:text="?" />
+
+                <ImageView
+                    android:id="@+id/ivAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+                    
+                <ProgressBar
+                    android:id="@+id/pbAvatar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone" />
             </FrameLayout>
+            
+            <ImageView
+                android:id="@+id/ivEditAvatar"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_camera"
+                android:background="@drawable/bg_avatar"
+                android:backgroundTint="?attr/colorPrimary"
+                android:padding="4dp"
+                app:layout_constraintBottom_toBottomOf="@id/flAvatar"
+                app:layout_constraintEnd_toEndOf="@id/flAvatar"
+                android:layout_marginEnd="-4dp"
+                android:layout_marginBottom="-4dp"
+                android:elevation="2dp"
+                android:visibility="gone"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/tvName"
@@ -194,18 +224,57 @@
                     android:visibility="gone"
                     style="@style/Widget.Material3.Button.OutlinedButton" />
 
-                <!-- Pending state -->
-                <TextView
-                    android:id="@+id/tvApplicationPending"
+                <!-- Pending state Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardApplicationPending"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/application_pending"
-                    android:textColor="@color/pending_text"
-                    android:background="@drawable/bg_badge_pending"
-                    android:padding="12dp"
-                    android:gravity="center"
-                    android:layout_marginTop="12dp"
-                    android:visibility="gone" />
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#FFC107">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="#FFF8E1">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_hourglass"
+                                app:tint="#F57F17" />
+                                
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Application Under Review"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#F57F17"
+                                android:layout_marginStart="8dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="We have received your business details. Please allow 1-2 business days for our team to verify and approve your application."
+                            android:textSize="14sp"
+                            android:textColor="#5D4037"
+                            android:layout_marginTop="8dp"
+                            android:lineSpacingMultiplier="1.2" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEditProfile"
@@ -214,6 +283,33 @@
                     android:text="@string/edit_profile"
                     android:layout_marginTop="12dp"
                     style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                <!-- New feature buttons -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMyReservations"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="My Reservations"
+                    android:layout_marginTop="12dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnListPublicSpot"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="List a Public Spot"
+                    android:layout_marginTop="12dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnNotificationSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Settings"
+                    android:layout_marginTop="12dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+
 
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>

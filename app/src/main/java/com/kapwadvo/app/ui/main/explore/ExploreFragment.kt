@@ -16,6 +16,7 @@ import com.kapwadvo.app.databinding.FragmentExploreBinding
 import com.kapwadvo.app.databinding.LayoutBookingSummaryCardBinding
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
 import java.util.Calendar
 
@@ -91,7 +92,7 @@ class ExploreFragment : Fragment() {
 
         binding.progressBookings.visibility = View.VISIBLE
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val bookings = BookingRepository.getBookingsForUser(uid)
                 binding.progressBookings.visibility = View.GONE
@@ -136,39 +137,54 @@ class ExploreFragment : Fragment() {
     private fun loadHighlights() {
         binding.progressHighlights.visibility = View.VISIBLE
 
-        lifecycleScope.launch {
-            try {
-                val listings = ListingRepository.getApprovedListings()
+        viewLifecycleOwner.lifecycleScope.launch {
+            // Trigger a background sync from Supabase
+            launch {
+                ListingRepository.syncApprovedListings()
+            }
 
-                // Fetch reviews for all listings concurrently
-                val reviewJobs = listings.map { listing ->
-                    async {
-                        val reviews = ReviewRepository.getReviewsForListing(listing.id)
-                        val avg = if (reviews.isEmpty()) 0.0
-                                  else reviews.map { it.rating }.average()
+            // Observe the local cache
+            ListingRepository.observeApprovedListings().collectLatest { listings ->
+                try {
+                    if (listings.isEmpty()) {
+                        binding.progressHighlights.visibility = View.GONE
+                        binding.tvHighlightsEmpty.visibility = View.VISIBLE
+                        return@collectLatest
+                    }
+                    
+                    binding.tvHighlightsEmpty.visibility = View.GONE
+
+                    // Fetch raw reviews for all listings in a single query to compute stats
+                    // TODO: This should also be moved to Room caching in Tier 1 Step 3
+                    val listingIds = listings.map { it.id }
+                    val allReviews = ReviewRepository.getRawReviewsForListings(listingIds)
+                    val reviewsByListing = allReviews.groupBy { it.listingId }
+
+                    val highlighted = listings.map { listing ->
+                        val reviews = reviewsByListing[listing.id] ?: emptyList()
+                        val avg = if (reviews.isEmpty()) 0.0 else reviews.map { it.rating }.average()
                         HighlightItem(listing, avg, reviews.size)
                     }
-                }
-                val highlighted = reviewJobs.map { it.await() }
                     .filter { it.reviewCount > 0 }               // only listings with reviews
                     .sortedByDescending { it.avgRating }
                     .take(10)
 
-                // If no reviewed listings, show top 10 by name as fallback
-                val finalList = if (highlighted.isEmpty()) {
-                    listings.take(10).map { HighlightItem(it, 0.0, 0) }
-                } else highlighted
+                    // If no reviewed listings, show top 10 by name as fallback
+                    val finalList = if (highlighted.isEmpty()) {
+                        listings.take(10).map { HighlightItem(it, 0.0, 0) }
+                    } else highlighted
 
-                binding.progressHighlights.visibility = View.GONE
-                if (finalList.isEmpty()) {
+                    binding.progressHighlights.visibility = View.GONE
+                    if (finalList.isEmpty()) {
+                        binding.tvHighlightsEmpty.visibility = View.VISIBLE
+                    } else {
+                        highlightAdapter.submitList(finalList)
+                        binding.rvHighlights.visibility = View.VISIBLE
+                    }
+                } catch (e: Exception) {
+                    binding.progressHighlights.visibility = View.GONE
                     binding.tvHighlightsEmpty.visibility = View.VISIBLE
-                } else {
-                    highlightAdapter.submitList(finalList)
-                    binding.rvHighlights.visibility = View.VISIBLE
                 }
-            } catch (e: Exception) {
-                binding.progressHighlights.visibility = View.GONE
-                binding.tvHighlightsEmpty.visibility = View.VISIBLE
             }
         }
     }

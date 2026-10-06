@@ -1,20 +1,23 @@
 package com.kapwadvo.app.ui.admin
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+
 import com.kapwadvo.app.UserSession
+import com.kapwadvo.app.data.CategoryManager
 import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.data.models.ListingInsert
 import com.kapwadvo.app.data.repository.ListingRepository
@@ -31,8 +34,9 @@ class ListingFormFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var editingListing: Listing? = null
-
     private val selectedPhotoUris = mutableListOf<Uri>()
+    private var selectedCategories = mutableSetOf<String>()
+    private var othersCustomText: String = ""
 
     // ActivityResultLauncher for the map pin picker
     private val mapPickerLauncher = registerForActivityResult(
@@ -74,6 +78,9 @@ class ListingFormFragment : Fragment() {
         private const val ARG_LISTING_LAT = "listing_lat"
         private const val ARG_LISTING_LNG = "listing_lng"
         private const val ARG_LISTING_STATUS = "listing_status"
+        private const val ARG_LISTING_OWNER_ID = "listing_owner_id"
+        private const val ARG_LISTING_BOOKINGS = "listing_bookings"
+        private const val ARG_LISTING_PHOTOS = "listing_photos"
 
         fun newInstance(listing: Listing?): ListingFormFragment {
             return ListingFormFragment().apply {
@@ -89,13 +96,14 @@ class ListingFormFragment : Fragment() {
                         listing.lat?.let { putDouble(ARG_LISTING_LAT, it) }
                         listing.lng?.let { putDouble(ARG_LISTING_LNG, it) }
                         putString(ARG_LISTING_STATUS, listing.status)
+                        putString(ARG_LISTING_OWNER_ID, listing.ownerId)
+                        putBoolean(ARG_LISTING_BOOKINGS, listing.bookingsEnabled)
+                        putStringArray(ARG_LISTING_PHOTOS, listing.photoUrls.toTypedArray())
                     }
                 }
             }
         }
     }
-
-    private val categories = listOf("Tourist Spot", "Business", "Hidden Gem", "Food", "Accommodation")
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentListingFormBinding.inflate(inflater, container, false)
@@ -105,8 +113,7 @@ class ListingFormFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // This fragment is added to android.R.id.content (full screen), so we must
-        // manually apply the status bar inset as top padding on the root view.
+        // Apply window insets
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             v.setPadding(0, systemBars.top, 0, systemBars.bottom)
@@ -114,12 +121,20 @@ class ListingFormFragment : Fragment() {
         }
         view.requestApplyInsets()
 
-        val catAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, categories)
-        binding.spinnerCategory.adapter = catAdapter
+        // Set up category dropdown
+        setupCategoryDropdown()
 
+        // Show gear icon only for admin
+        if (UserSession.isAdmin()) {
+            binding.btnManageCategories.visibility = View.VISIBLE
+            binding.btnManageCategories.setOnClickListener { showManageCategoriesDialog() }
+        }
+
+        // Restore edit data
         arguments?.getString(ARG_LISTING_ID)?.let { id ->
             editingListing = Listing(
                 id = id,
+                ownerId = arguments?.getString(ARG_LISTING_OWNER_ID),
                 name = arguments?.getString(ARG_LISTING_NAME) ?: "",
                 description = arguments?.getString(ARG_LISTING_DESC) ?: "",
                 category = arguments?.getString(ARG_LISTING_CAT) ?: "",
@@ -128,7 +143,9 @@ class ListingFormFragment : Fragment() {
                 contact = arguments?.getString(ARG_LISTING_CONTACT),
                 lat = if (arguments?.containsKey(ARG_LISTING_LAT) == true) arguments?.getDouble(ARG_LISTING_LAT) else null,
                 lng = if (arguments?.containsKey(ARG_LISTING_LNG) == true) arguments?.getDouble(ARG_LISTING_LNG) else null,
-                status = arguments?.getString(ARG_LISTING_STATUS) ?: "pending"
+                status = arguments?.getString(ARG_LISTING_STATUS) ?: "pending",
+                bookingsEnabled = arguments?.getBoolean(ARG_LISTING_BOOKINGS) ?: false,
+                photoUrls = arguments?.getStringArray(ARG_LISTING_PHOTOS)?.toList() ?: emptyList()
             )
             binding.tvFormTitle.text = "Edit Listing"
             binding.etName.setText(editingListing?.name)
@@ -138,8 +155,10 @@ class ListingFormFragment : Fragment() {
             binding.etContact.setText(editingListing?.contact)
             binding.etLat.setText(editingListing?.lat?.toString() ?: "")
             binding.etLng.setText(editingListing?.lng?.toString() ?: "")
-            val catIdx = categories.indexOf(editingListing?.category)
-            if (catIdx >= 0) binding.spinnerCategory.setSelection(catIdx)
+
+            // Restore selected categories
+            val (selectedCats, othersText) = CategoryManager.decode(editingListing?.category ?: "")
+            restoreCategorySelections(selectedCats, othersText)
 
             if (editingListing?.status == "approved" && UserSession.isOwner()) {
                 binding.btnSave.text = "Request Update"
@@ -173,6 +192,171 @@ class ListingFormFragment : Fragment() {
         binding.btnSave.setOnClickListener { saveListing() }
     }
 
+    // ── Category Dropdown setup ───────────────────────────────────────────────
+
+    private fun setupCategoryDropdown() {
+        binding.etCategoryDropdown.setOnClickListener {
+            showCategorySelectionDialog()
+        }
+    }
+
+    private fun showCategorySelectionDialog() {
+        val allOptions = CategoryManager.getCategories() + CategoryManager.OTHERS
+        val items = allOptions.toTypedArray()
+        val checkedItems = items.map { it in selectedCategories }.toBooleanArray()
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Select Categories")
+            .setMultiChoiceItems(items, checkedItems) { dialog, which, isChecked ->
+                if (isChecked) {
+                    selectedCategories.add(items[which])
+                    if (items[which] == CategoryManager.OTHERS) {
+                        val input = android.widget.EditText(requireContext()).apply {
+                            hint = "Specify 'Others'"
+                            setText(othersCustomText)
+                            setPadding(48, 24, 48, 24)
+                        }
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Specify Others")
+                            .setView(input)
+                            .setPositiveButton("OK") { _, _ ->
+                                othersCustomText = input.text.toString().trim()
+                                updateCategoryDropdownText()
+                            }
+                            .setNegativeButton("Cancel") { _, _ ->
+                                (dialog as AlertDialog).listView.setItemChecked(which, false)
+                                selectedCategories.remove(items[which])
+                                othersCustomText = ""
+                            }
+                            .setCancelable(false)
+                            .show()
+                    }
+                } else {
+                    selectedCategories.remove(items[which])
+                    if (items[which] == CategoryManager.OTHERS) {
+                        othersCustomText = ""
+                        updateCategoryDropdownText()
+                    }
+                }
+            }
+            .setPositiveButton("OK") { _, _ ->
+                updateCategoryDropdownText()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun restoreCategorySelections(selected: Set<String>, othersText: String) {
+        selectedCategories.clear()
+        selectedCategories.addAll(selected)
+        if (CategoryManager.OTHERS in selected && othersText.isNotEmpty()) {
+            othersCustomText = othersText
+        }
+        updateCategoryDropdownText()
+    }
+
+    private fun updateCategoryDropdownText() {
+        val list = selectedCategories.toMutableList()
+        if (CategoryManager.OTHERS in list && othersCustomText.isNotEmpty()) {
+            list.remove(CategoryManager.OTHERS)
+            list.add("Others ($othersCustomText)")
+        }
+        binding.etCategoryDropdown.setText(list.joinToString(", "))
+    }
+
+    private fun getSelectedCategoryEncoded(): String {
+        return CategoryManager.encode(selectedCategories, othersCustomText)
+    }
+
+    // ── Admin: Manage categories dialog ──────────────────────────────────────
+
+    private fun showManageCategoriesDialog() {
+        val categories = CategoryManager.getCategories().toMutableList()
+
+        val items = categories.map { it }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle("Manage Categories")
+            .setItems(items) { _, which ->
+                showEditOrDeleteDialog(categories, which)
+            }
+            .setPositiveButton("Add New") { _, _ ->
+                showAddCategoryDialog(categories)
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun showAddCategoryDialog(categories: MutableList<String>) {
+        val input = EditText(requireContext()).apply {
+            hint = "New category name"
+            setPadding(48, 24, 48, 24)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Add Category")
+            .setView(input)
+            .setPositiveButton("Add") { _, _ ->
+                val newCat = input.text.toString().trim()
+                if (newCat.isNotEmpty() && newCat !in categories && newCat != CategoryManager.OTHERS) {
+                    categories.add(newCat)
+                    CategoryManager.saveCategories(categories)
+                    updateCategoryDropdownText()
+                    Toast.makeText(context, "\"$newCat\" added", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Invalid or duplicate category", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showEditOrDeleteDialog(categories: MutableList<String>, index: Int) {
+        val catName = categories[index]
+        AlertDialog.Builder(requireContext())
+            .setTitle("\"$catName\"")
+            .setItems(arrayOf("Edit", "Delete")) { _, which ->
+                when (which) {
+                    0 -> showEditCategoryDialog(categories, index)
+                    1 -> {
+                        categories.removeAt(index)
+                        CategoryManager.saveCategories(categories)
+                        selectedCategories.remove(catName)
+                        updateCategoryDropdownText()
+                        Toast.makeText(context, "\"$catName\" deleted", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showEditCategoryDialog(categories: MutableList<String>, index: Int) {
+        val input = EditText(requireContext()).apply {
+            setText(categories[index])
+            setPadding(48, 24, 48, 24)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Edit Category")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val updated = input.text.toString().trim()
+                if (updated.isNotEmpty() && updated != CategoryManager.OTHERS) {
+                    val catName = categories[index]
+                    categories[index] = updated
+                    CategoryManager.saveCategories(categories)
+                    if (catName in selectedCategories) {
+                        selectedCategories.remove(catName)
+                        selectedCategories.add(updated)
+                    }
+                    updateCategoryDropdownText()
+                    Toast.makeText(context, "Category updated", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // ── Photo previews ────────────────────────────────────────────────────────
+
     private fun renderPhotoPreviews() {
         binding.layoutPhotoPreviews.removeAllViews()
         selectedPhotoUris.forEach { uri -> addPhotoPreview(uri.toString()) }
@@ -188,7 +372,6 @@ class ListingFormFragment : Fragment() {
         }
         try {
             if (uriOrUrl.startsWith("http")) {
-                // Existing remote URL — load with Glide if available, else tint placeholder
                 iv.setImageResource(android.R.drawable.ic_menu_gallery)
             } else {
                 iv.setImageURI(android.net.Uri.parse(uriOrUrl))
@@ -199,10 +382,11 @@ class ListingFormFragment : Fragment() {
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
+    // ── Save ──────────────────────────────────────────────────────────────────
+
     private fun saveListing() {
         val name = binding.etName.text.toString().trim()
         val desc = binding.etDescription.text.toString().trim()
-        val cat = binding.spinnerCategory.selectedItem.toString()
         val addr = binding.etAddress.text.toString().trim().ifEmpty { null }
         val hours = binding.etHours.text.toString().trim().ifEmpty { null }
         val contact = binding.etContact.text.toString().trim().ifEmpty { null }
@@ -214,8 +398,20 @@ class ListingFormFragment : Fragment() {
             return
         }
 
+        // Validate categories
+        val anySelected = selectedCategories.isNotEmpty()
+        if (!anySelected) {
+            Toast.makeText(context, "Please select at least one category", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (CategoryManager.OTHERS in selectedCategories && othersCustomText.isEmpty()) {
+            Toast.makeText(context, "Please specify what \"Others\" means", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val cat = getSelectedCategoryEncoded()
         val ownerId = editingListing?.ownerId ?: UserSession.userId ?: ""
-        
+
         var finalStatus = editingListing?.status ?: "pending"
         var pendingUpdatesJson: kotlinx.serialization.json.JsonObject? = null
 
@@ -230,12 +426,15 @@ class ListingFormFragment : Fragment() {
                 if (lat != editingListing?.lat) put("lat", lat ?: 0.0)
                 if (lng != editingListing?.lng) put("lng", lng ?: 0.0)
             }
+            if (pendingUpdatesJson.isEmpty()) {
+                Toast.makeText(context, "No changes detected", Toast.LENGTH_SHORT).show()
+                return
+            }
         }
 
         binding.btnSave.isEnabled = false
         lifecycleScope.launch {
             try {
-                // Upload new photos and merge with existing URLs
                 val existingUrls = editingListing?.photoUrls ?: emptyList()
                 val newUrls = selectedPhotoUris.map { uri ->
                     val bytes = requireContext().contentResolver.openInputStream(uri)?.readBytes() ?: return@map null
@@ -262,14 +461,28 @@ class ListingFormFragment : Fragment() {
                 val editId = editingListing?.id
                 if (editId != null) {
                     ListingRepository.updateListing(editId, insert)
+                    if (pendingUpdatesJson != null) {
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Update Requested")
+                            .setMessage("Your update request has been submitted and will be reviewed by an admin.")
+                            .setCancelable(false)
+                            .setPositiveButton("OK") { _, _ ->
+                                (requireActivity().supportFragmentManager.findFragmentByTag("listings") as? com.kapwadvo.app.ui.owner.OwnerListingsFragment)?.reload()
+                                requireActivity().supportFragmentManager.popBackStack()
+                            }
+                            .show()
+                        return@launch
+                    } else {
+                        Toast.makeText(context, "Listing saved", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     ListingRepository.createListing(insert)
+                    Toast.makeText(context, "Listing saved", Toast.LENGTH_SHORT).show()
                 }
-                Toast.makeText(context, "Saved!", Toast.LENGTH_SHORT).show()
                 (requireActivity().supportFragmentManager.findFragmentByTag("listings") as? com.kapwadvo.app.ui.owner.OwnerListingsFragment)?.reload()
                 requireActivity().supportFragmentManager.popBackStack()
             } catch (e: Exception) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Failed to save listing. Please try again", Toast.LENGTH_LONG).show()
                 binding.btnSave.isEnabled = true
             }
         }

@@ -41,17 +41,18 @@ class OwnerListingsFragment : Fragment() {
             onEdit = { openForm(it) },
             onDelete = { confirmDelete(it) },
             onToggleBooking = { listing, enable ->
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
                         ListingRepository.toggleBookingEnabled(listing.id, enable)
                         val msg = if (enable) "Booking enabled" else "Booking disabled"
                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                         load()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Failed to update booking setting. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
-            }
+            },
+            onCancelUpdate = { confirmCancelUpdate(it) }
         )
         binding.rvListings.layoutManager = LinearLayoutManager(requireContext())
         binding.rvListings.adapter = adapter
@@ -59,10 +60,7 @@ class OwnerListingsFragment : Fragment() {
         load()
     }
 
-    override fun onResume() {
-        super.onResume()
-        load()
-    }
+
 
     fun reload() {
         load()
@@ -71,11 +69,19 @@ class OwnerListingsFragment : Fragment() {
     private fun load() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmpty.visibility = View.GONE
-        lifecycleScope.launch {
-            val listings = ListingRepository.getListingsByOwner(UserSession.userId!!)
-            binding.progressBar.visibility = View.GONE
-            adapter.submitList(listings)
-            binding.tvEmpty.visibility = if (listings.isEmpty()) View.VISIBLE else View.GONE
+        viewLifecycleOwner.lifecycleScope.launch {
+            val uid = UserSession.userId ?: return@launch
+            // Trigger background sync silently
+            ListingRepository.syncOwnerListings(uid)
+        }
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            val uid = UserSession.userId ?: return@launch
+            ListingRepository.observeOwnerListings(uid).collect { listings ->
+                binding.progressBar.visibility = View.GONE
+                adapter.submitList(listings)
+                binding.tvEmpty.visibility = if (listings.isEmpty()) View.VISIBLE else View.GONE
+            }
         }
     }
 
@@ -90,17 +96,36 @@ class OwnerListingsFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle("Delete ${listing.name}?")
             .setPositiveButton("Delete") { _, _ ->
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
                         ListingRepository.deleteListing(listing.id)
-                        Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Listing deleted", Toast.LENGTH_SHORT).show()
                         load()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Failed to delete listing. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }
             }
             .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmCancelUpdate(listing: Listing) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Cancel Update Request?")
+            .setMessage("Are you sure you want to cancel this update request? Your pending changes will be lost.")
+            .setPositiveButton("Cancel Update") { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        ListingRepository.cancelPendingUpdate(listing.id)
+                        Toast.makeText(context, "Update request cancelled", Toast.LENGTH_SHORT).show()
+                        load()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Failed to cancel update request. Please try again", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("Back", null)
             .show()
     }
 

@@ -54,11 +54,17 @@ class SignupFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 AuthRepository.signup(email, password, firstName, lastName)
+                binding.etEmail.error = null
                 // Always go to email verification — Supabase requires it.
                 // The VerifyEmailFragment polls until confirmation is detected.
                 (activity as? AuthActivity)?.showVerifyEmail(email, password)
             } catch (e: Exception) {
-                Toast.makeText(context, "Signup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                if (e.message == "EMAIL_ALREADY_REGISTERED") {
+                    binding.etEmail.error = "Email is already registered. Please log in."
+                    binding.etEmail.requestFocus()
+                } else {
+                    Toast.makeText(context, "Sign up failed. Please try again", Toast.LENGTH_LONG).show()
+                }
                 binding.btnSignup.isEnabled = true
             }
         }

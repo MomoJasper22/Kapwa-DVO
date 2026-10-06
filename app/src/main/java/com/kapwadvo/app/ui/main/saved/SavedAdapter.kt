@@ -25,7 +25,18 @@ class SavedAdapter(
         fun bind(listing: Listing) {
             binding.tvName.text = listing.name
             binding.tvCategory.text = listing.category
-            binding.tvPhotoLabel.text = "[ Photo: ${listing.name} ]"
+            
+            if (listing.photoUrls.isNotEmpty()) {
+                binding.ivPhoto.visibility = android.view.View.VISIBLE
+                binding.tvPhotoLabel.visibility = android.view.View.GONE
+                com.bumptech.glide.Glide.with(binding.root.context)
+                    .load(listing.photoUrls.first())
+                    .into(binding.ivPhoto)
+            } else {
+                binding.ivPhoto.visibility = android.view.View.GONE
+                binding.tvPhotoLabel.visibility = android.view.View.VISIBLE
+                binding.tvPhotoLabel.text = "[ Photo: ${listing.name} ]"
+            }
             binding.root.setOnClickListener { onItemClick(listing) }
             binding.btnRemove.setOnClickListener { onRemoveClick(listing) }
         }

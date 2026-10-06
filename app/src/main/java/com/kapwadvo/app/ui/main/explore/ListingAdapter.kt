@@ -21,6 +21,7 @@ class ListingAdapter(
 
     private val listings = mutableListOf<Listing>()
     private val savedIds = mutableSetOf<String>()
+    private val ownerNames = mutableMapOf<String, String>()
 
     fun submitList(newList: List<Listing>) {
         listings.clear()
@@ -39,9 +40,23 @@ class ListingAdapter(
 
         fun bind(listing: Listing) {
             binding.tvName.text = listing.name
-            binding.tvCategory.text = listing.category
+            binding.tvCategory.text = com.kapwadvo.app.data.CategoryManager.toDisplayString(listing.category)
             binding.tvDescription.text = listing.description
-            binding.tvPhotoLabel.text = "[ Photo: ${listing.name} ]"
+            
+            if (listing.photoUrls.isNotEmpty()) {
+                binding.ivPhoto.visibility = android.view.View.VISIBLE
+                binding.tvPhotoLabel.visibility = android.view.View.GONE
+                com.bumptech.glide.Glide.with(binding.root.context)
+                    .load(listing.photoUrls.first())
+                    .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
+                    .placeholder(android.R.color.darker_gray)
+                    .error(android.R.color.darker_gray)
+                    .into(binding.ivPhoto)
+            } else {
+                binding.ivPhoto.visibility = android.view.View.GONE
+                binding.tvPhotoLabel.visibility = android.view.View.VISIBLE
+                binding.tvPhotoLabel.text = "[ Photo: ${listing.name} ]"
+            }
 
             val isSaved = listing.id in savedIds
             binding.btnSave.setImageResource(
@@ -77,15 +92,16 @@ class ListingAdapter(
 
             val ownerId = listing.ownerId
             if (ownerId != null) {
-                if (listing.ownerName != null) {
-                    binding.tvOwnerName.text = "By ${listing.ownerName}"
+                val cachedName = listing.ownerName ?: ownerNames[ownerId]
+                if (cachedName != null) {
+                    binding.tvOwnerName.text = "By $cachedName"
                     binding.tvOwnerName.visibility = android.view.View.VISIBLE
                 } else {
                     binding.tvOwnerName.visibility = android.view.View.GONE
                     binding.root.findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
                         val profile = com.kapwadvo.app.data.repository.AuthRepository.getProfile(ownerId)
                         val name = profile?.fullName ?: "Unknown Owner"
-                        listing.ownerName = name
+                        ownerNames[ownerId] = name
                         binding.tvOwnerName.text = "By $name"
                         binding.tvOwnerName.visibility = android.view.View.VISIBLE
                     }

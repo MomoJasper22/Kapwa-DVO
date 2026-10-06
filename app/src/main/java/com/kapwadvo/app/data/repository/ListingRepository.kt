@@ -8,19 +8,59 @@ import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+import kotlinx.coroutines.flow.map
+
 object ListingRepository {
 
-    suspend fun getApprovedListings(): List<Listing> = try {
-        supabase.from("listings")
-            .select { filter { eq("status", "approved") } }
-            .decodeList<Listing>()
-    } catch (e: Exception) { emptyList() }
+    fun observeApprovedListings(): kotlinx.coroutines.flow.Flow<List<Listing>> {
+        return com.kapwadvo.app.KapwaDVOApp.database.listingDao().observeApprovedListings()
+            .map { list -> list.map { it.toListing() } }
+    }
 
-    suspend fun getListingsByOwner(ownerId: String): List<Listing> = try {
-        supabase.from("listings")
-            .select { filter { eq("owner_id", ownerId) } }
-            .decodeList<Listing>()
-    } catch (e: Exception) { emptyList() }
+    suspend fun syncApprovedListings() {
+        try {
+            val listings = supabase.from("listings")
+                .select { filter { eq("status", "approved") } }
+                .decodeList<Listing>()
+            val cached = listings.map { com.kapwadvo.app.data.local.entity.CachedListing.fromListing(it) }
+            if (listings.isNotEmpty()) {
+                com.kapwadvo.app.KapwaDVOApp.database.listingDao().deleteStaleApprovedListings(listings.map { it.id })
+            }
+            com.kapwadvo.app.KapwaDVOApp.database.listingDao().insertAll(cached)
+        } catch (e: Exception) {
+            // Silently fail sync, UI will still show cached data
+        }
+    }
+
+    suspend fun getApprovedListings(): List<Listing> {
+        return com.kapwadvo.app.KapwaDVOApp.database.listingDao().getApprovedListings().map { it.toListing() }
+    }
+
+    fun observeOwnerListings(ownerId: String): kotlinx.coroutines.flow.Flow<List<Listing>> {
+        return com.kapwadvo.app.KapwaDVOApp.database.listingDao().observeOwnerListings(ownerId)
+            .map { list -> list.map { it.toListing() } }
+    }
+
+    suspend fun getListingsByOwner(ownerId: String): List<Listing> {
+        return com.kapwadvo.app.KapwaDVOApp.database.listingDao().getOwnerListings(ownerId).map { it.toListing() }
+    }
+    
+    suspend fun syncOwnerListings(ownerId: String): List<String>? {
+        return try {
+            val listings = supabase.from("listings")
+                .select { filter { eq("owner_id", ownerId) } }
+                .decodeList<Listing>()
+            val cached = listings.map { com.kapwadvo.app.data.local.entity.CachedListing.fromListing(it) }
+            com.kapwadvo.app.KapwaDVOApp.database.listingDao().deleteStaleOwnerListings(ownerId, listings.map { it.id })
+            
+            if (cached.isNotEmpty()) {
+                com.kapwadvo.app.KapwaDVOApp.database.listingDao().insertAll(cached)
+            }
+            listings.map { it.id }
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     suspend fun getAllListings(): List<Listing> = try {
         supabase.from("listings").select().decodeList<Listing>()
@@ -44,38 +84,19 @@ object ListingRepository {
             .decodeSingleOrNull<Listing>()
     } catch (e: Exception) { null }
 
-    suspend fun getListingsByIds(ids: List<String>): List<Listing> =
-        ids.mapNotNull { getListingById(it) }
+    suspend fun getListingsByIds(ids: List<String>): List<Listing> = try {
+        if (ids.isEmpty()) emptyList()
+        else supabase.from("listings")
+            .select { filter { isIn("id", ids) } }
+            .decodeList<Listing>()
+    } catch (e: Exception) { emptyList() }
 
     suspend fun createListing(insert: ListingInsert) {
         supabase.from("listings").insert(insert)
     }
 
     suspend fun updateListing(id: String, insert: ListingInsert) {
-        supabase.from("listings").update(
-            buildJsonObject {
-                put("name", insert.name)
-                put("description", insert.description)
-                put("category", insert.category)
-                insert.address?.let { put("address", it) }
-                insert.hours?.let { put("hours", it) }
-                insert.contact?.let { put("contact", it) }
-                insert.lat?.let { put("lat", it) }
-                insert.lng?.let { put("lng", it) }
-                put("status", insert.status)
-                // Always write pending_updates — null clears a previous request
-                if (insert.pendingUpdates != null) {
-                    put("pending_updates", insert.pendingUpdates)
-                } else {
-                    put("pending_updates", kotlinx.serialization.json.JsonNull)
-                }
-                
-                val photoArray = kotlinx.serialization.json.buildJsonArray {
-                    insert.photoUrls.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
-                }
-                put("photo_urls", photoArray)
-            }
-        ) { filter { eq("id", id) } }
+        supabase.from("listings").update(insert) { filter { eq("id", id) } }
     }
 
     suspend fun uploadPhoto(bytes: ByteArray, fileName: String): String {
@@ -103,6 +124,12 @@ object ListingRepository {
     suspend fun toggleBookingEnabled(id: String, enabled: Boolean) {
         supabase.from("listings").update(
             buildJsonObject { put("bookings_enabled", enabled) }
+        ) { filter { eq("id", id) } }
+    }
+
+    suspend fun cancelPendingUpdate(id: String) {
+        supabase.from("listings").update(
+            buildJsonObject { put("pending_updates", kotlinx.serialization.json.JsonNull) }
         ) { filter { eq("id", id) } }
     }
 }

@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import com.kapwadvo.app.R
 import com.kapwadvo.app.databinding.ActivityBusinessOwnerBinding
 
@@ -15,6 +19,7 @@ class BusinessOwnerActivity : AppCompatActivity() {
     private val bookingsFragment = OwnerBookingsFragment()
     private val profileFragment = com.kapwadvo.app.ui.main.profile.ProfileFragment()
     private var activeFragment: Fragment = listingsFragment
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +37,28 @@ class BusinessOwnerActivity : AppCompatActivity() {
 
         initFragments()
         setupBottomNav()
+        setupBackStackListener()
+        
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.collect { isOnline ->
+                    binding.tvOfflineBanner.visibility = if (isOnline) android.view.View.GONE else android.view.View.VISIBLE
+                }
+            }
+        }
+    }
+    
+
+
+    private fun setupBackStackListener() {
+        supportFragmentManager.addOnBackStackChangedListener {
+            val hasBackStack = supportFragmentManager.backStackEntryCount > 0
+            if (hasBackStack) {
+                binding.bottomNav.visibility = android.view.View.GONE
+            } else {
+                binding.bottomNav.visibility = if (activeFragment == profileFragment) android.view.View.GONE else android.view.View.VISIBLE
+            }
+        }
     }
 
     private fun initFragments() {

@@ -45,7 +45,8 @@ data class ReviewWithAuthor(
     val comment: String?,
     val createdAt: String?,
     val authorName: String,
-    val authorInitials: String
+    val authorInitials: String,
+    val authorAvatarUrl: String?
 )
 
 /** UI model — comment merged with author's profile data */
@@ -55,5 +56,6 @@ data class CommentWithAuthor(
     val content: String,
     val createdAt: String?,
     val authorName: String,
-    val authorInitials: String
+    val authorInitials: String,
+    val authorAvatarUrl: String?
 )

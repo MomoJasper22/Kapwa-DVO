@@ -8,6 +8,7 @@ import com.kapwadvo.app.data.models.Listing
 import com.kapwadvo.app.databinding.ItemListingReviewBinding
 
 class AdminReviewAdapter(
+    private val onItemClick: (Listing) -> Unit,
     private val onApprove: (Listing) -> Unit,
     private val onReject: (Listing) -> Unit
 ) : RecyclerView.Adapter<AdminReviewAdapter.ViewHolder>() {
@@ -47,6 +48,7 @@ class AdminReviewAdapter(
 
             binding.btnApprove.setOnClickListener { onApprove(listing) }
             binding.btnReject.setOnClickListener { onReject(listing) }
+            binding.root.setOnClickListener { onItemClick(listing) }
         }
     }
 

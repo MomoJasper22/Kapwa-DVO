@@ -9,10 +9,8 @@ import kotlinx.serialization.json.put
 
 object ApplicationRepository {
 
-    suspend fun submitApplication(userId: String) {
-        supabase.from("owner_applications").insert(
-            OwnerApplicationInsert(userId = userId)
-        )
+    suspend fun submitApplication(application: OwnerApplicationInsert) {
+        supabase.from("owner_applications").insert(application)
     }
 
     suspend fun getPendingApplications(): List<OwnerApplication> = try {

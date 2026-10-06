@@ -1,0 +1,60 @@
+package com.kapwadvo.app.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.kapwadvo.app.data.local.dao.ListingDao
+import com.kapwadvo.app.data.local.entity.CachedListing
+
+import com.kapwadvo.app.data.local.dao.ProfileDao
+import com.kapwadvo.app.data.local.entity.CachedProfile
+
+import com.kapwadvo.app.data.local.dao.ReviewDao
+import com.kapwadvo.app.data.local.dao.SavedLocationDao
+import com.kapwadvo.app.data.local.dao.BookingDao
+import com.kapwadvo.app.data.local.entity.CachedReview
+import com.kapwadvo.app.data.local.entity.CachedReviewComment
+import com.kapwadvo.app.data.local.entity.CachedSavedLocation
+import com.kapwadvo.app.data.local.entity.CachedBooking
+
+@Database(
+    entities = [
+        CachedListing::class, 
+        CachedProfile::class, 
+        CachedReview::class, 
+        CachedReviewComment::class,
+        CachedSavedLocation::class,
+        CachedBooking::class
+    ], 
+    version = 1, 
+    exportSchema = false
+)
+@TypeConverters(Converters::class)
+abstract class KapwaDatabase : RoomDatabase() {
+    abstract fun listingDao(): ListingDao
+    abstract fun profileDao(): ProfileDao
+    abstract fun reviewDao(): ReviewDao
+    abstract fun savedLocationDao(): SavedLocationDao
+    abstract fun bookingDao(): BookingDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: KapwaDatabase? = null
+
+        fun getDatabase(context: Context): KapwaDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    KapwaDatabase::class.java,
+                    "kapwa_database"
+                )
+                .fallbackToDestructiveMigration()
+                .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}

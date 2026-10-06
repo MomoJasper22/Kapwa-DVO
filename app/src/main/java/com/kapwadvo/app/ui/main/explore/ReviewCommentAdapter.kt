@@ -4,6 +4,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.kapwadvo.app.data.models.CommentWithAuthor
 import com.kapwadvo.app.databinding.ItemReviewCommentBinding
 
@@ -23,6 +25,18 @@ class ReviewCommentAdapter(
     inner class ViewHolder(private val b: ItemReviewCommentBinding) : RecyclerView.ViewHolder(b.root) {
         fun bind(c: CommentWithAuthor) {
             b.tvInitials.text = c.authorInitials
+            if (c.authorAvatarUrl.isNullOrEmpty()) {
+                b.ivAvatar.visibility = View.GONE
+                b.tvInitials.visibility = View.VISIBLE
+            } else {
+                b.ivAvatar.visibility = View.VISIBLE
+                b.tvInitials.visibility = View.GONE
+                Glide.with(b.root.context)
+                    .load(c.authorAvatarUrl)
+                    .circleCrop()
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .into(b.ivAvatar)
+            }
             b.tvAuthorName.text = c.authorName
             b.tvDate.text = c.createdAt?.take(10) ?: ""
             b.tvContent.text = c.content

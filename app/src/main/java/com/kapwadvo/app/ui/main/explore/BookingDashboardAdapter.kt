@@ -24,7 +24,7 @@ class BookingDashboardAdapter(
 
         fun bind(booking: Booking, listingName: String) {
             binding.tvBookingListingName.text = listingName
-            binding.tvBookingDate.text = "📅 ${booking.date}"
+            binding.tvBookingDate.text = booking.date
 
             val (text, bgColor, textColor) = when (booking.status) {
                 "confirmed", "accepted" -> Triple("Confirmed", Color.parseColor("#D4EDDA"), Color.parseColor("#155724"))

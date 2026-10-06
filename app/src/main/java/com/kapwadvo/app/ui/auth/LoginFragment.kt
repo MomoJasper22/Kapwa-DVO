@@ -53,7 +53,7 @@ class LoginFragment : Fragment() {
                 AuthRepository.login(email, password)
                 (activity as? AuthActivity)?.navigateToMain()
             } catch (e: Exception) {
-                Toast.makeText(context, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Login failed. Please check your credentials and try again", Toast.LENGTH_LONG).show()
                 binding.btnLogin.isEnabled = true
             }
         }

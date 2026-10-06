@@ -11,7 +11,8 @@ import com.kapwadvo.app.databinding.ItemOwnerListingBinding
 class OwnerListingAdapter(
     private val onEdit: (Listing) -> Unit,
     private val onDelete: (Listing) -> Unit,
-    private val onToggleBooking: (Listing, Boolean) -> Unit
+    private val onToggleBooking: (Listing, Boolean) -> Unit,
+    private val onCancelUpdate: (Listing) -> Unit
 ) : RecyclerView.Adapter<OwnerListingAdapter.ViewHolder>() {
 
     private val listings = mutableListOf<Listing>()
@@ -27,8 +28,21 @@ class OwnerListingAdapter(
 
         fun bind(listing: Listing) {
             binding.tvName.text = listing.name
-            binding.tvCategory.text = listing.category
-            binding.tvPhotoLabel.text = "[ ${listing.name} ]"
+            // Owner sees full category info including "Others: <custom text>"
+            binding.tvCategory.text = com.kapwadvo.app.data.CategoryManager
+                .toAdminDisplayString(listing.category).ifEmpty { listing.category }
+            
+            if (listing.photoUrls.isNotEmpty()) {
+                binding.ivPhoto.visibility = android.view.View.VISIBLE
+                binding.tvPhotoLabel.visibility = android.view.View.GONE
+                com.bumptech.glide.Glide.with(binding.root.context)
+                    .load(listing.photoUrls.first())
+                    .into(binding.ivPhoto)
+            } else {
+                binding.ivPhoto.visibility = android.view.View.GONE
+                binding.tvPhotoLabel.visibility = android.view.View.VISIBLE
+                binding.tvPhotoLabel.text = "[ ${listing.name} ]"
+            }
             binding.tvStatus.text = listing.status.replaceFirstChar { it.uppercase() }
 
             val (bg, textColor) = when (listing.status) {
@@ -55,7 +69,16 @@ class OwnerListingAdapter(
                 onToggleBooking(listing, !listing.bookingsEnabled)
             }
 
-            binding.btnEdit.setOnClickListener { onEdit(listing) }
+            if (listing.pendingUpdates != null) {
+                binding.tvPendingUpdate.visibility = android.view.View.VISIBLE
+                binding.btnEdit.text = "Cancel Update"
+                binding.btnEdit.setOnClickListener { onCancelUpdate(listing) }
+            } else {
+                binding.tvPendingUpdate.visibility = android.view.View.GONE
+                binding.btnEdit.text = binding.root.context.getString(R.string.edit)
+                binding.btnEdit.setOnClickListener { onEdit(listing) }
+            }
+
             binding.btnDelete.setOnClickListener { onDelete(listing) }
         }
     }

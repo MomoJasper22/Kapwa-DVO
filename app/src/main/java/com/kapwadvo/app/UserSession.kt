@@ -14,6 +14,7 @@ object UserSession {
     var dob: String = ""
     var phoneNumber: String = ""
     var address: String = ""
+    var avatarUrl: String? = null
 
     val fullName: String
         get() = listOf(firstName, lastName).filter { it.isNotEmpty() }.joinToString(" ")
@@ -34,5 +35,6 @@ object UserSession {
         dob = ""
         phoneNumber = ""
         address = ""
+        avatarUrl = null
     }
 }

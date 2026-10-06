@@ -33,17 +33,39 @@ class MyReservationsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Hide bottom nav
-        requireActivity().findViewById<BottomNavigationView>(R.id.bottomNav)
-            ?.visibility = View.GONE
-
         setupRecyclerView()
         setupBackButton()
         loadReservations()
+
+        parentFragmentManager.setFragmentResultListener("booking_updated", viewLifecycleOwner) { _, _ ->
+            loadReservations()
+        }
     }
 
     private fun setupRecyclerView() {
-        adapter = ReservationAdapter()
+        adapter = ReservationAdapter(
+            onItemClick = { booking, listing ->
+                if (listing != null) {
+                    val detailFragment = ReservationDetailFragment.newInstance(booking, listing)
+                    parentFragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainer, detailFragment)
+                        .addToBackStack(null)
+                        .commit()
+                }
+            },
+            onCancelClick = { booking ->
+                showCancelConfirmation(booking)
+            },
+            onViewClick = { booking, listing ->
+                if (listing != null) {
+                    val detailFragment = ReservationDetailFragment.newInstance(booking, listing)
+                    parentFragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainer, detailFragment)
+                        .addToBackStack(null)
+                        .commit()
+                }
+            }
+        )
         binding.rvReservations.apply {
             this.adapter = this@MyReservationsFragment.adapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -60,8 +82,27 @@ class MyReservationsFragment : Fragment() {
         val uid = UserSession.userId ?: return
         binding.progressBar.visibility = View.VISIBLE
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
+                // Background sync
+                launch {
+                    try {
+                        BookingRepository.syncUserBookings(uid)
+                        val updatedBookings = BookingRepository.getBookingsForUser(uid)
+                        if (updatedBookings.isEmpty()) {
+                            binding.tvEmpty.visibility = View.VISIBLE
+                        } else {
+                            val listingIds = updatedBookings.map { it.listingId }.distinct()
+                            val listingsMap = listingIds.mapNotNull {
+                                ListingRepository.getListingById(it)
+                            }.associateBy { it.id }
+                            val pairs = updatedBookings.sortedByDescending { it.date }.map { b -> b to listingsMap[b.listingId] }
+                            adapter.submitList(pairs)
+                            binding.tvEmpty.visibility = View.GONE
+                        }
+                    } catch (e: Exception) {}
+                }
+
                 val bookings = BookingRepository.getBookingsForUser(uid)
                 binding.progressBar.visibility = View.GONE
 
@@ -79,8 +120,8 @@ class MyReservationsFragment : Fragment() {
                 val pairs = bookings
                     .sortedByDescending { it.date }
                     .map { booking ->
-                        val name = listingsMap[booking.listingId]?.name ?: "Unknown"
-                        booking to name
+                        val listing = listingsMap[booking.listingId]
+                        booking to listing
                     }
 
                 adapter.submitList(pairs)
@@ -93,11 +134,39 @@ class MyReservationsFragment : Fragment() {
         }
     }
 
+    private fun showCancelConfirmation(booking: com.kapwadvo.app.data.models.Booking) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Cancel Request")
+            .setMessage("Are you sure you want to cancel this reservation request?")
+            .setPositiveButton("Yes") { _, _ ->
+                cancelBooking(booking.id, booking.listingId)
+            }
+            .setNegativeButton("No", null)
+            .show()
+    }
+
+    private fun cancelBooking(bookingId: String, listingId: String) {
+        val networkMonitor = com.kapwadvo.app.util.NetworkMonitor(requireContext())
+        if (!networkMonitor.isOnline.value) {
+            android.widget.Toast.makeText(context, "You must be online to cancel a reservation", android.widget.Toast.LENGTH_SHORT).show()
+            networkMonitor.unregister()
+            return
+        }
+        networkMonitor.unregister()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                BookingRepository.updateBookingStatus(bookingId, listingId, "cancelled")
+                android.widget.Toast.makeText(context, "Reservation cancelled", android.widget.Toast.LENGTH_SHORT).show()
+                loadReservations()
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Failed to cancel", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
-        // Restore bottom nav when leaving
-        requireActivity().findViewById<BottomNavigationView>(R.id.bottomNav)
-            ?.visibility = View.VISIBLE
         _binding = null
     }
 }

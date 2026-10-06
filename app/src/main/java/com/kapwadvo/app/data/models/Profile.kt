@@ -13,7 +13,8 @@ data class Profile(
     val status: String? = null,
     @SerialName("dob") val dob: String? = null,
     @SerialName("phone_number") val phoneNumber: String? = null,
-    val address: String? = null
+    val address: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null
 ) {
     val fullName: String
         get() = listOfNotNull(firstName, lastName).joinToString(" ").ifEmpty { "" }
