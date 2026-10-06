@@ -129,22 +129,26 @@ class OwnerBookingsFragment : Fragment() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmpty.visibility = View.GONE
         
-        viewLifecycleOwner.lifecycleScope.launch {
-            val ownerId = com.kapwadvo.app.UserSession.userId ?: return@launch
-            val myListings = ListingRepository.getListingsByOwner(ownerId) // Uses Room cache
-            listingsMap = myListings.associateBy { it.id }
-            val listingIds = myListings.map { it.id }
-            
-            // Trigger background sync silently
-            BookingRepository.syncListingsBookings(listingIds)
-        }
-        
+        // Removed the initial sync call using the potentially empty Room cache, 
+        // as we will sync bookings dynamically when observeOwnerListings emits updated listings.
         viewLifecycleOwner.lifecycleScope.launch {
             val ownerId = com.kapwadvo.app.UserSession.userId ?: return@launch
             ListingRepository.observeOwnerListings(ownerId).collect { myListings ->
                 val b = _binding ?: return@collect
                 listingsMap = myListings.associateBy { it.id }
                 val listingIds = myListings.map { it.id }
+                
+                // Trigger background sync silently for the updated listings
+                if (listingIds.isNotEmpty()) {
+                    launch {
+                        try {
+                            BookingRepository.syncListingsBookings(listingIds)
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            // Ignored
+                        }
+                    }
+                }
                 
                 bookingsJob?.cancel()
                 bookingsJob = launch {

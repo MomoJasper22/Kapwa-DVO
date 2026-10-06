@@ -51,7 +51,12 @@ class SavedFragment : Fragment() {
                     try {
                         val uid = UserSession.userId ?: return@launch
                         SavedRepository.removeSaved(uid, listing.id)
-                        Toast.makeText(context, "Removed from saved", Toast.LENGTH_SHORT).show()
+                        val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                        if (isOnline) {
+                            Toast.makeText(context, "Removed from saved", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
+                        }
                         loadSaved()
                     } catch (e: Exception) {
                         Toast.makeText(context, "Failed to remove. Please try again", Toast.LENGTH_LONG).show()

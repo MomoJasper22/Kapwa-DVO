@@ -10,6 +10,7 @@ import com.kapwadvo.app.data.repository.ListingRepository
 import com.kapwadvo.app.data.repository.SavedRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import io.github.jan.supabase.postgrest.from
 
 class NetworkSyncWorker(
     context: Context,
@@ -58,7 +59,15 @@ class NetworkSyncWorker(
             try {
                 val json = org.json.JSONObject(action.payload)
                 when (action.actionType) {
-                    "CANCEL_RESERVATION" -> {
+                    "SUBMIT_PUBLIC_SPOT" -> {
+                        val request = kotlinx.serialization.json.Json.decodeFromString<com.kapwadvo.app.data.models.PublicSpotRequestInsert>(action.payload)
+                        com.kapwadvo.app.data.repository.PublicSpotRepository.createRequest(request)
+                    }
+                    "SUBMIT_OWNER_APPLICATION" -> {
+                        val application = kotlinx.serialization.json.Json.decodeFromString<com.kapwadvo.app.data.models.OwnerApplicationInsert>(action.payload)
+                        com.kapwadvo.app.data.repository.ApplicationRepository.submitApplication(application)
+                    }
+                    "CANCEL_RESERVATION", "UPDATE_RESERVATION_STATUS" -> {
                         val bookingId = json.getString("id")
                         val listingId = json.getString("listingId")
                         val status = json.getString("status")
@@ -68,6 +77,21 @@ class NetworkSyncWorker(
                         val listingId = json.getString("listingId")
                         val enable = json.getBoolean("enable")
                         ListingRepository.toggleBookingEnabled(listingId, enable)
+                    }
+                    "TOGGLE_SAVE" -> {
+                        val listingId = json.getString("listingId")
+                        val isSaved = json.getBoolean("saved")
+                        if (isSaved) {
+                            val insert = com.kapwadvo.app.data.models.SavedLocationInsert(userId = userId, listingId = listingId)
+                            com.kapwadvo.app.supabase.from("saved_locations").insert(insert)
+                        } else {
+                            com.kapwadvo.app.supabase.from("saved_locations").delete {
+                                filter {
+                                    eq("user_id", userId)
+                                    eq("listing_id", listingId)
+                                }
+                            }
+                        }
                     }
                 }
                 com.kapwadvo.app.data.repository.SyncQueueRepository.deleteAction(action.id)

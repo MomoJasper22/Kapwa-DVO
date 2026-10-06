@@ -10,6 +10,12 @@ import kotlinx.serialization.json.put
 object ApplicationRepository {
 
     suspend fun submitApplication(application: OwnerApplicationInsert) {
+        val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+        if (!isOnline) {
+            val payload = kotlinx.serialization.json.Json.encodeToString(application)
+            com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(application.userId, "SUBMIT_OWNER_APPLICATION", payload)
+            return
+        }
         supabase.from("owner_applications").insert(application)
     }
 

@@ -34,26 +34,61 @@ object SavedRepository {
     }
 
     suspend fun saveLocation(userId: String, listingId: String) {
-        val insert = SavedLocationInsert(userId = userId, listingId = listingId)
-        supabase.from("saved_locations").insert(insert)
-
-        // Optimistic update of local cache
-        val fakeId = java.util.UUID.randomUUID()
-            .toString() // Wait, actual ID is created by DB. It's ok to use random for cache because sync will overwrite
+        val fakeId = java.util.UUID.randomUUID().toString()
         val saved = SavedLocation(id = fakeId, userId = userId, listingId = listingId)
         com.kapwadvo.app.KapwaDVOApp.database.savedLocationDao()
             .insert(com.kapwadvo.app.data.local.entity.CachedSavedLocation.from(saved))
-        syncSavedForUser(userId)
+
+        val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+        try {
+            if (isOnline) {
+                val insert = SavedLocationInsert(userId = userId, listingId = listingId)
+                supabase.from("saved_locations").insert(insert)
+                syncSavedForUser(userId)
+            } else {
+                throw Exception("Offline")
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            val payload = org.json.JSONObject().apply {
+                put("listingId", listingId)
+                put("saved", true)
+            }.toString()
+            com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(
+                userId,
+                "TOGGLE_SAVE",
+                payload
+            )
+        }
     }
 
     suspend fun removeSaved(userId: String, listingId: String) {
-        supabase.from("saved_locations").delete {
-            filter {
-                eq("user_id", userId)
-                eq("listing_id", listingId)
-            }
-        }
         com.kapwadvo.app.KapwaDVOApp.database.savedLocationDao().delete(userId, listingId)
+
+        val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+        try {
+            if (isOnline) {
+                supabase.from("saved_locations").delete {
+                    filter {
+                        eq("user_id", userId)
+                        eq("listing_id", listingId)
+                    }
+                }
+            } else {
+                throw Exception("Offline")
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            val payload = org.json.JSONObject().apply {
+                put("listingId", listingId)
+                put("saved", false)
+            }.toString()
+            com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(
+                userId,
+                "TOGGLE_SAVE",
+                payload
+            )
+        }
     }
 
     suspend fun isSaved(userId: String, listingId: String): Boolean {

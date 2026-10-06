@@ -259,18 +259,11 @@ class ProfileFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.collect { isOnline ->
                 val b = _binding ?: return@collect
-                b.btnBecomeOwner.isEnabled = isOnline
-                b.btnEditProfile.isEnabled = isOnline
-                b.btnListPublicSpot.isEnabled = isOnline
-                b.ivEditAvatar.isEnabled = isOnline
-                b.flAvatar.isEnabled = isOnline
-                
-                val offlineMsg = "Requires internet connection"
-                if (!isOnline) {
-                    b.btnBecomeOwner.contentDescription = offlineMsg
-                    b.btnEditProfile.contentDescription = offlineMsg
-                    b.btnListPublicSpot.contentDescription = offlineMsg
-                }
+                b.btnBecomeOwner.isEnabled = true
+                b.btnEditProfile.isEnabled = true
+                b.btnListPublicSpot.isEnabled = true
+                b.ivEditAvatar.isEnabled = true
+                b.flAvatar.isEnabled = true
             }
         }
 
@@ -333,21 +326,16 @@ class ProfileFragment : Fragment() {
             // Apply cache first for instant UI without flickering
             if (cachedStatus != null) {
                 applyApplicationStatus(cachedStatus)
-            }
-            
-            // If offline and we have a cache, we're done
-            if (!isOnline && cachedStatus != null) {
+                // We are done! Only check network if we have NO cache.
                 return@launch
             }
             
             val originalText = b.btnBecomeOwner.text
             
-            // Otherwise, we check the network (either no cache, or we are online and need to sync)
-            if (cachedStatus == null) {
-                b.btnBecomeOwner.isEnabled = false
-                b.btnBecomeOwner.text = "Checking..."
-                b.btnBecomeOwner.visibility = View.VISIBLE
-            }
+            // Otherwise, we check the network since there's no cache
+            b.btnBecomeOwner.isEnabled = false
+            b.btnBecomeOwner.text = "Checking..."
+            b.btnBecomeOwner.visibility = View.VISIBLE
             
             try {
                 val app = ApplicationRepository.getUserApplication(uid)
@@ -365,14 +353,7 @@ class ProfileFragment : Fragment() {
                 val finalBinding = _binding ?: return@launch
                 finalBinding.btnBecomeOwner.text = originalText
                 finalBinding.btnBecomeOwner.isEnabled = true
-                
-                // Network error: if we have cache, use it
-                if (cachedStatus != null) {
-                    applyApplicationStatus(cachedStatus)
-                } else {
-                    // No cache and network error, hide everything to be safe
-                    applyApplicationStatus("error")
-                }
+                applyApplicationStatus("error")
             }
         }
     }

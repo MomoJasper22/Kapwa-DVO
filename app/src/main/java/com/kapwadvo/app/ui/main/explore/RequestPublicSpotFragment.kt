@@ -116,7 +116,8 @@ class RequestPublicSpotFragment : Fragment() {
             try {
                 var photoUrl: String? = null
                 val uri = selectedPhotoUri
-                if (uri != null) {
+                val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                if (uri != null && isOnline) {
                     val bytes = requireContext().contentResolver.openInputStream(uri)?.readBytes()
                     if (bytes != null) {
                         val fileName = "${UUID.randomUUID()}.jpg"
@@ -135,9 +136,14 @@ class RequestPublicSpotFragment : Fragment() {
                     status = "pending"
                 )
 
-                PublicSpotRepository.createRequest(insert)
-                
-                Toast.makeText(requireContext(), "Public Spot requested! Waiting for admin approval.", Toast.LENGTH_LONG).show()
+                if (!isOnline) {
+                    val payload = kotlinx.serialization.json.Json.encodeToString(insert)
+                    com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(uid, "SUBMIT_PUBLIC_SPOT", payload)
+                    Toast.makeText(requireContext(), "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
+                } else {
+                    PublicSpotRepository.createRequest(insert)
+                    Toast.makeText(requireContext(), "Public Spot requested! Waiting for admin approval.", Toast.LENGTH_LONG).show()
+                }
                 parentFragmentManager.popBackStack()
 
             } catch (e: Exception) {

@@ -148,6 +148,11 @@ class OwnerApplicationFragment : Fragment() {
                 val prefs = requireContext().getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
                 prefs.edit().putString("app_status_$uid", "pending").apply()
                 
+                val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                if (!isOnline) {
+                    Toast.makeText(context, "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
+                }
+                
                 showSuccessDialog()
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e

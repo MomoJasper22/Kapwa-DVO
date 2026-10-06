@@ -141,14 +141,7 @@ class BookingDetailFragment : Fragment() {
             
             viewLifecycleOwner.lifecycleScope.launch {
                 com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.collect { isOnline ->
-                    binding.btnAccept.isEnabled = isOnline
-                    binding.btnDecline.isEnabled = isOnline
-                    
-                    val offlineMsg = "Requires internet connection"
-                    if (!isOnline) {
-                        binding.btnAccept.contentDescription = offlineMsg
-                        binding.btnDecline.contentDescription = offlineMsg
-                    }
+                    // Removed disabled offline behavior for buttons
                 }
             }
             
@@ -168,12 +161,35 @@ class BookingDetailFragment : Fragment() {
             .setTitle("${newStatus.replaceFirstChar { it.uppercase() }} Booking")
             .setMessage("Are you sure you want to $newStatus this booking request?")
             .setPositiveButton(newStatus.replaceFirstChar { it.uppercase() }) { _, _ ->
+                val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
                 viewLifecycleOwner.lifecycleScope.launch {
                     try {
-                        BookingRepository.updateBookingStatus(booking.id, booking.listingId, newStatus)
-                        Toast.makeText(context, "Booking ${newStatus.replaceFirstChar { it.uppercase() }}", Toast.LENGTH_SHORT).show()
+                        if (isOnline) {
+                            BookingRepository.updateBookingStatus(booking.id, booking.listingId, newStatus)
+                            Toast.makeText(context, "Booking ${newStatus.replaceFirstChar { it.uppercase() }}", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val dao = com.kapwadvo.app.KapwaDVOApp.database.bookingDao()
+                            val cached = dao.getBookingById(booking.id)
+                            if (cached != null) {
+                                dao.insert(cached.copy(status = newStatus))
+                            }
+                            
+                            val payload = org.json.JSONObject().apply {
+                                put("id", booking.id)
+                                put("listingId", booking.listingId)
+                                put("status", newStatus)
+                            }.toString()
+                            
+                            com.kapwadvo.app.data.repository.SyncQueueRepository.queueAction(
+                                com.kapwadvo.app.UserSession.userId ?: "",
+                                "UPDATE_RESERVATION_STATUS",
+                                payload
+                            )
+                            Toast.makeText(context, "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
+                        }
                         parentFragmentManager.popBackStack() // Go back to the list
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         Toast.makeText(context, "Failed to update booking. Please try again", Toast.LENGTH_LONG).show()
                     }
                 }

@@ -67,7 +67,7 @@ class OwnerListingsFragment : Fragment() {
                                 "DISABLE_BOOKING",
                                 payload
                             )
-                            Toast.makeText(ctx, "You are offline. Changes will be synced once online.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(ctx, "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
                         }
                         load()
                     } catch (e: Exception) {
@@ -95,8 +95,13 @@ class OwnerListingsFragment : Fragment() {
         binding.tvEmpty.visibility = View.GONE
         viewLifecycleOwner.lifecycleScope.launch {
             val uid = UserSession.userId ?: return@launch
-            // Trigger background sync silently
-            ListingRepository.syncOwnerListings(uid)
+            try {
+                // Trigger background sync silently
+                ListingRepository.syncOwnerListings(uid)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // Ignored to prevent UI crash
+            }
         }
         
         viewLifecycleOwner.lifecycleScope.launch {

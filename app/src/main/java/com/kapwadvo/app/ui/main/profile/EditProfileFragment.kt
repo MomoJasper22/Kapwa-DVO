@@ -180,7 +180,7 @@ class EditProfileFragment : Fragment() {
                 if (isOnline) {
                     Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "You are offline. Changes will be synced once online.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
                 }
 
                 parentFragmentManager.popBackStack()

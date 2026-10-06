@@ -153,16 +153,9 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.collect { isOnline ->
-                    binding.btnBook.isEnabled = isOnline
-                    binding.btnSave.isEnabled = isOnline
-                    binding.btnSubmitReview.isEnabled = isOnline
-                    binding.btnPostComment.isEnabled = isOnline
-                    
-                    val offlineMsg = "Requires internet connection"
-                    if (!isOnline) {
-                        binding.btnBook.contentDescription = offlineMsg
-                        binding.btnSave.contentDescription = offlineMsg
-                    }
+                    binding.btnBook.isEnabled = true
+                    binding.btnSubmitReview.isEnabled = true
+                    binding.btnPostComment.isEnabled = true
                 }
             }
         }
@@ -337,6 +330,11 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
                     if (!UserSession.isLoggedIn()) {
                         startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
                     } else {
+                        val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                        if (!isOnline) {
+                            Toast.makeText(context, "You need to be online to proceed", Toast.LENGTH_LONG).show()
+                            return@setOnClickListener
+                        }
                         showBookingDialog()
                     }
                 }
@@ -382,7 +380,13 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
             }
             binding.btnSave.isEnabled = false
             viewModel.toggleSave(listing.id,
-                onSuccess = { binding.btnSave.isEnabled = true },
+                onSuccess = { 
+                    binding.btnSave.isEnabled = true
+                    val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+                    if (!isOnline) {
+                        Toast.makeText(context, "Changes Made Will Apply Once Online", Toast.LENGTH_LONG).show()
+                    }
+                },
                 onError = {
                     Toast.makeText(context, "Failed to update saved. Please try again", Toast.LENGTH_LONG).show()
                     binding.btnSave.isEnabled = true
@@ -397,6 +401,11 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
         binding.btnSubmitReview.setOnClickListener {
             if (!UserSession.isLoggedIn()) {
                 startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
+                return@setOnClickListener
+            }
+            val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+            if (!isOnline) {
+                Toast.makeText(context, "You need to be online to proceed", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             val rating = binding.ratingInput.rating.toInt()
@@ -427,6 +436,11 @@ class ListingDetailSheet : BottomSheetDialogFragment() {
         binding.btnPostComment.setOnClickListener {
             if (!UserSession.isLoggedIn()) {
                 startActivity(android.content.Intent(requireContext(), com.kapwadvo.app.ui.auth.AuthActivity::class.java))
+                return@setOnClickListener
+            }
+            val isOnline = com.kapwadvo.app.KapwaDVOApp.networkMonitor.isOnline.value
+            if (!isOnline) {
+                Toast.makeText(context, "You need to be online to proceed", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             val text = binding.etComment.text.toString().trim()
