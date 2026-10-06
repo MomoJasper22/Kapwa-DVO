@@ -33,6 +33,7 @@ class NetworkSyncWorker(
             
             // Sync globally cached data
             ListingRepository.syncApprovedListings()
+            com.kapwadvo.app.data.CategoryManager.syncCategoriesFromSupabase()
             
             // Sync user-specific cached data
             if (UserSession.isLoggedIn() && uid != null) {
@@ -97,7 +98,14 @@ class NetworkSyncWorker(
                 com.kapwadvo.app.data.repository.SyncQueueRepository.deleteAction(action.id)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                // If it fails, leave it in the queue for next time
+                android.util.Log.e("NetworkSyncWorker", "Failed to process action ${action.id}", e)
+                if (action.retryCount >= 3) {
+                    android.util.Log.e("NetworkSyncWorker", "Action ${action.id} exceeded retry limit. Dropping.")
+                    com.kapwadvo.app.data.repository.SyncQueueRepository.deleteAction(action.id)
+                } else {
+                    val updatedAction = action.copy(retryCount = action.retryCount + 1)
+                    com.kapwadvo.app.data.repository.SyncQueueRepository.updateAction(updatedAction)
+                }
             }
         }
     }

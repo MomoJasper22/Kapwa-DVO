@@ -2,6 +2,8 @@ package com.kapwadvo.app.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.kapwadvo.app.supabase
+import io.github.jan.supabase.postgrest.from
 
 /**
  * Manages the list of listing/application categories.
@@ -36,9 +38,61 @@ object CategoryManager {
         return result
     }
 
-    fun saveCategories(categories: List<String>) {
+    suspend fun syncCategoriesFromSupabase() {
+        try {
+            val supabaseCategories = supabase.from("categories")
+                .select()
+                .decodeList<com.kapwadvo.app.data.models.Category>()
+            val names = supabaseCategories.map { it.name }.sorted()
+            saveToLocalCache(names)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
+    }
+
+    private fun saveToLocalCache(categories: List<String>) {
         cachedCategories = categories
         prefs?.edit()?.putString(KEY_CATEGORIES, categories.joinToString("|"))?.apply()
+    }
+
+    suspend fun addCategory(name: String) {
+        try {
+            val insert = kotlinx.serialization.json.buildJsonObject {
+                put("name", kotlinx.serialization.json.JsonPrimitive(name))
+            }
+            supabase.from("categories").insert(insert)
+            syncCategoriesFromSupabase()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            throw e
+        }
+    }
+
+    suspend fun deleteCategory(name: String) {
+        try {
+            supabase.from("categories").delete {
+                filter { eq("name", name) }
+            }
+            syncCategoriesFromSupabase()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            throw e
+        }
+    }
+
+    suspend fun updateCategory(oldName: String, newName: String) {
+        try {
+            val update = kotlinx.serialization.json.buildJsonObject {
+                put("name", kotlinx.serialization.json.JsonPrimitive(newName))
+            }
+            supabase.from("categories").update(update) {
+                filter { eq("name", oldName) }
+            }
+            syncCategoriesFromSupabase()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            throw e
+        }
     }
 
     // ── Encoding / Decoding multi-select + Others ─────────────────────────────

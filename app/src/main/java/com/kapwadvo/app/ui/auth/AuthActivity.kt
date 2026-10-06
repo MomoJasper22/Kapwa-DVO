@@ -32,6 +32,12 @@ class AuthActivity : AppCompatActivity() {
         }
 
         setupTabs()
+
+        supportFragmentManager.addOnBackStackChangedListener {
+            if (supportFragmentManager.backStackEntryCount == 0) {
+                binding.tabLayout.visibility = android.view.View.VISIBLE
+            }
+        }
     }
 
     private fun setupTabs() {
@@ -86,6 +92,14 @@ class AuthActivity : AppCompatActivity() {
         VerifyEmailFragment.PendingStore.pass = password
         supportFragmentManager.beginTransaction()
             .replace(binding.authFragmentContainer.id, VerifyEmailFragment.newInstance())
+            .commit()
+    }
+
+    fun showForgotPassword() {
+        binding.tabLayout.visibility = android.view.View.GONE
+        supportFragmentManager.beginTransaction()
+            .replace(binding.authFragmentContainer.id, ForgotPasswordFragment.newInstance())
+            .addToBackStack(null)
             .commit()
     }
 }

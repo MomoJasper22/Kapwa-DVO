@@ -53,7 +53,7 @@ class OwnerBookingAdapter(
             
             val parts = booking.date.split(" ")
             val dateStr = parts.getOrNull(0) ?: booking.date
-            val timeStr = parts.getOrNull(1) ?: ""
+            val timeStr = if (parts.size > 1) parts.drop(1).joinToString(" ") else ""
             binding.tvDate.text = "Date: $dateStr at $timeStr | Guests: ${booking.guests}"
             
             binding.tvNotes.text = if (booking.notes.isNullOrEmpty()) "Notes: None" else "Notes: ${booking.notes}"

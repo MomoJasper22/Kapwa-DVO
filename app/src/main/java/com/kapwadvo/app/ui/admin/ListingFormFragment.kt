@@ -297,10 +297,16 @@ class ListingFormFragment : Fragment() {
             .setPositiveButton("Add") { _, _ ->
                 val newCat = input.text.toString().trim()
                 if (newCat.isNotEmpty() && newCat !in categories && newCat != CategoryManager.OTHERS) {
-                    categories.add(newCat)
-                    CategoryManager.saveCategories(categories)
-                    updateCategoryDropdownText()
-                    Toast.makeText(context, "\"$newCat\" added", Toast.LENGTH_SHORT).show()
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        try {
+                            CategoryManager.addCategory(newCat)
+                            categories.add(newCat)
+                            updateCategoryDropdownText()
+                            Toast.makeText(context, "\"$newCat\" added", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Failed to add category", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 } else {
                     Toast.makeText(context, "Invalid or duplicate category", Toast.LENGTH_SHORT).show()
                 }
@@ -317,11 +323,17 @@ class ListingFormFragment : Fragment() {
                 when (which) {
                     0 -> showEditCategoryDialog(categories, index)
                     1 -> {
-                        categories.removeAt(index)
-                        CategoryManager.saveCategories(categories)
-                        selectedCategories.remove(catName)
-                        updateCategoryDropdownText()
-                        Toast.makeText(context, "\"$catName\" deleted", Toast.LENGTH_SHORT).show()
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try {
+                                CategoryManager.deleteCategory(catName)
+                                categories.removeAt(index)
+                                selectedCategories.remove(catName)
+                                updateCategoryDropdownText()
+                                Toast.makeText(context, "\"$catName\" deleted", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Failed to delete category", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
             }
@@ -341,14 +353,20 @@ class ListingFormFragment : Fragment() {
                 val updated = input.text.toString().trim()
                 if (updated.isNotEmpty() && updated != CategoryManager.OTHERS) {
                     val catName = categories[index]
-                    categories[index] = updated
-                    CategoryManager.saveCategories(categories)
-                    if (catName in selectedCategories) {
-                        selectedCategories.remove(catName)
-                        selectedCategories.add(updated)
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        try {
+                            CategoryManager.updateCategory(catName, updated)
+                            categories[index] = updated
+                            if (catName in selectedCategories) {
+                                selectedCategories.remove(catName)
+                                selectedCategories.add(updated)
+                            }
+                            updateCategoryDropdownText()
+                            Toast.makeText(context, "Category updated", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Failed to update category", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    updateCategoryDropdownText()
-                    Toast.makeText(context, "Category updated", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)

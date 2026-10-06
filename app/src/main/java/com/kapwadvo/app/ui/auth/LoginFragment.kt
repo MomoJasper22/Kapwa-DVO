@@ -35,6 +35,9 @@ class LoginFragment : Fragment() {
         binding.tvSignup.setOnClickListener {
             (activity as? AuthActivity)?.binding?.tabLayout?.getTabAt(1)?.select()
         }
+        binding.tvForgotPassword.setOnClickListener {
+            (activity as? AuthActivity)?.showForgotPassword()
+        }
     }
 
     private fun performLogin() {

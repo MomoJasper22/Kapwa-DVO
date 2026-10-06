@@ -59,6 +59,24 @@ object AuthRepository {
         }
     }
 
+    suspend fun sendPasswordResetCode(email: String) {
+        supabase.auth.resetPasswordForEmail(email = email)
+    }
+
+    suspend fun verifyResetCode(email: String, code: String) {
+        supabase.auth.verifyEmailOtp(
+            type = OtpType.Email.RECOVERY,
+            email = email,
+            token = code
+        )
+    }
+
+    suspend fun setNewPassword(password: String) {
+        supabase.auth.updateUser {
+            this.password = password
+        }
+    }
+
     /**
      * Returns true if the currently signed-up user has confirmed their email.
      * Supabase sets emailConfirmedAt once the link is clicked.

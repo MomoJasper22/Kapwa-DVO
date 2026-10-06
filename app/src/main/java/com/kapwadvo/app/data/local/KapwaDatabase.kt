@@ -30,7 +30,7 @@ import com.kapwadvo.app.data.local.entity.PendingSyncAction
         CachedBooking::class,
         PendingSyncAction::class
     ], 
-    version = 2, 
+    version = 3, 
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -46,6 +46,12 @@ abstract class KapwaDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: KapwaDatabase? = null
 
+        val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE pending_sync_actions ADD COLUMN retryCount INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): KapwaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -53,6 +59,7 @@ abstract class KapwaDatabase : RoomDatabase() {
                     KapwaDatabase::class.java,
                     "kapwa_database"
                 )
+                .addMigrations(MIGRATION_2_3)
                 .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance

@@ -9,5 +9,6 @@ data class PendingSyncAction(
     val userId: String,
     val actionType: String,
     val payload: String, // JSON representation of the action data
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val retryCount: Int = 0
 )

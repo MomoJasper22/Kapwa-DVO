@@ -80,7 +80,7 @@ class ReservationDetailFragment : Fragment() {
 
         val parts = b.date.split(" ")
         binding.tvDate.text = parts.getOrNull(0) ?: b.date
-        binding.tvTime.text = parts.getOrNull(1) ?: ""
+        binding.tvTime.text = if (parts.size > 1) parts.drop(1).joinToString(" ") else ""
         
         binding.tvGuests.text = "${b.guests} guest(s)"
         binding.tvNotes.text = if (b.notes.isNullOrBlank()) "None" else b.notes
@@ -146,7 +146,7 @@ class ReservationDetailFragment : Fragment() {
         
         val parts = b.date.split(" ")
         var selectedDate = parts.getOrNull(0)
-        var selectedTime = parts.getOrNull(1)
+        var selectedTime = if (parts.size > 1) parts.drop(1).joinToString(" ") else null
 
         dialogBinding.etDate.setText(selectedDate)
         dialogBinding.etTime.setText(selectedTime)
@@ -174,9 +174,9 @@ class ReservationDetailFragment : Fragment() {
             val hour = calendar.get(Calendar.HOUR_OF_DAY)
             val minute = calendar.get(Calendar.MINUTE)
             TimePickerDialog(requireContext(), { _, h, min ->
-                val hStr = h.toString().padStart(2, '0')
-                val mStr = min.toString().padStart(2, '0')
-                selectedTime = "$hStr:$mStr"
+                val ap = if (h >= 12) "PM" else "AM"
+                val dh = if (h == 0) 12 else if (h > 12) h - 12 else h
+                selectedTime = String.format("%02d:%02d %s", dh, min, ap)
                 dialogBinding.etTime.setText(selectedTime)
             }, hour, minute, false).show()
         }

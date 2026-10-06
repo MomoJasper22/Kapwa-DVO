@@ -29,4 +29,10 @@ object SyncQueueRepository {
             KapwaDVOApp.database.pendingSyncActionDao().delete(id)
         }
     }
+
+    suspend fun updateAction(action: PendingSyncAction) {
+        withContext(Dispatchers.IO) {
+            KapwaDVOApp.database.pendingSyncActionDao().insert(action)
+        }
+    }
 }
